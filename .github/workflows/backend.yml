@@ -1,0 +1,36 @@
+name: backend
+
+on:
+  push:
+    branches: [main]
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+  pull_request:
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: chatquiry
+          POSTGRES_PASSWORD: chatquiry
+          POSTGRES_DB: chatquiry
+        ports: ["5433:5432"]
+        options: --health-cmd "pg_isready -U chatquiry" --health-interval 3s --health-retries 20
+    env:
+      CQ_JWT_SECRET: ci-only-secret-with-enough-length-0123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check app tests
+      - run: uv run ruff format --check app tests
+      - run: uv run alembic upgrade head
+      - run: uv run python -m app.seed
+      - run: uv run pytest -q
