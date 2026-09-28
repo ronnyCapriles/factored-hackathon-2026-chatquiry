@@ -31,7 +31,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           </svg>
           {t.login.back}
         </Link>
-        <Wordmark size={52} />
+        <Wordmark size={52} onBrand />
         <span className="hidden grow md:block" />
         <h1 className="text-[44px] font-bold leading-[1.02] tracking-[-0.03em] md:text-[64px]">
           {t.landing.hero.title1}
@@ -41,11 +41,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <p className="max-w-[520px] text-[18px] leading-normal md:text-[20px]">{t.login.lead}</p>
       </section>
 
-      <section className="flex flex-col justify-center gap-6 px-8 py-12 md:px-24">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-[36px] font-bold">{t.login.title}</h2>
+      <section className="relative flex flex-col justify-center gap-6 px-8 pb-12 pt-24 md:px-24">
+        <div className="absolute left-8 top-10 md:left-24">
           <PrefsSwitcher theme={theme} />
         </div>
+        <h2 className="text-[36px] font-bold">{t.login.title}</h2>
         {next?.startsWith("/app/test-chat") && (
           <p className="max-w-[460px] rounded-fila border-2 border-tinta bg-marca-suave px-4 py-3 text-[14px]">{t.login.testChatNote}</p>
         )}
