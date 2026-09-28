@@ -1,0 +1,205 @@
+@import "tailwindcss";
+
+/* Yellow is a fill, never text on cream; use marca-texto for brand-colored text. */
+:root {
+  --fondo: #fbf5ea;
+  --superficie: #ffffff;
+  --marca: #f2b21b;
+  --marca-texto: #8a5a00;
+  --marca-suave: #fdf0c8;
+  --atencion: #c23a3a;
+  --tinta: #221b14;
+  --tinta-2: #3f352a;
+  --tinta-3: #5e5040;
+  --muted: #7a6a55;
+  --linea: #e8dcc9;
+  --linea-2: #f0e6d6;
+  --punto: #cdb997;
+  --punto-2: #a89679;
+  --sobre-marca: #221b14;
+  --sobre-atencion: #ffffff;
+  --panel: #221b14;
+  --panel-2: #3a2f24;
+  --panel-texto: #f2e9dc;
+  --panel-acento: #ffcb47;
+  --sombra: #221b14;
+  --logo-burbuja: #221b14;
+  --logo-check: #f2b21b;
+  --backdrop: #221b1466;
+}
+
+/* Dark is not light inverted: surfaces get lighter as they rise, colors lose saturation. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --fondo: #191411;
+  --superficie: #231d17;
+  --marca: #ffcb47;
+  --marca-texto: #ffcb47;
+  --marca-suave: #3a2e14;
+  --atencion: #ff7d7d;
+  --tinta: #f2e9dc;
+  --tinta-2: #e3d7c6;
+  --tinta-3: #c9bba6;
+  --muted: #a89679;
+  --linea: #3a3027;
+  --linea-2: #2e261f;
+  --punto: #6b5b47;
+  --punto-2: #8a7a63;
+  --sobre-atencion: #191411;
+  --panel: #2c241d;
+  --panel-2: #3a3027;
+  --sombra: #0b0907;
+  --logo-burbuja: #ffcb47;
+  --logo-check: #191411;
+  --backdrop: #000000aa;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    color-scheme: dark;
+    --fondo: #191411;
+    --superficie: #231d17;
+    --marca: #ffcb47;
+    --marca-texto: #ffcb47;
+    --marca-suave: #3a2e14;
+    --atencion: #ff7d7d;
+    --tinta: #f2e9dc;
+    --tinta-2: #e3d7c6;
+    --tinta-3: #c9bba6;
+    --muted: #a89679;
+    --linea: #3a3027;
+    --linea-2: #2e261f;
+    --punto: #6b5b47;
+    --punto-2: #8a7a63;
+    --sobre-atencion: #191411;
+    --panel: #2c241d;
+    --panel-2: #3a3027;
+    --sombra: #0b0907;
+    --logo-burbuja: #ffcb47;
+    --logo-check: #191411;
+    --backdrop: #000000aa;
+  }
+}
+
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-marca: var(--marca);
+  --color-marca-texto: var(--marca-texto);
+  --color-marca-suave: var(--marca-suave);
+  --color-atencion: var(--atencion);
+  --color-tinta: var(--tinta);
+  --color-tinta-2: var(--tinta-2);
+  --color-tinta-3: var(--tinta-3);
+  --color-muted: var(--muted);
+  --color-linea: var(--linea);
+  --color-linea-2: var(--linea-2);
+  --color-punto: var(--punto);
+  --color-punto-2: var(--punto-2);
+  --color-sobre-marca: var(--sobre-marca);
+  --color-sobre-atencion: var(--sobre-atencion);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-panel-texto: var(--panel-texto);
+  --color-panel-acento: var(--panel-acento);
+  --color-sombra: var(--sombra);
+
+  --font-sans: var(--font-space-grotesk), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, monospace;
+  --font-display: var(--font-bricolage), var(--font-space-grotesk), sans-serif;
+
+  --radius-fila: 13px;
+  --radius-tarjeta: 18px;
+  --radius-telefono: 24px;
+}
+
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+/* Text on the brand and alert fills keeps its contrast in both themes. */
+.bg-marca {
+  color: var(--sobre-marca);
+}
+.bg-atencion {
+  color: var(--sobre-atencion);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .typing-dot { animation: none; }
+}
+
+body {
+  background: var(--fondo);
+  color: var(--tinta);
+  font-family: var(--font-sans);
+}
+
+/* The only ornament: a dotted "perforated" line. */
+.perforado {
+  height: 6px;
+  background-image: radial-gradient(circle, var(--punto) 1.6px, transparent 1.8px);
+  background-size: 13px 6px;
+}
+
+.etiqueta {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+
+@keyframes typing {
+  0%, 80%, 100% { opacity: 0.35; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-2px); }
+}
+.typing-dot { animation: typing 1.2s infinite ease-in-out; }
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/* Toasts: the bar drains; hovering or focusing the toast pauses it. */
+@keyframes toast-drain {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+.toast-bar { animation-name: toast-drain; animation-timing-function: linear; animation-fill-mode: forwards; }
+.toast:hover .toast-bar, .toast:focus-within .toast-bar, .toast:focus .toast-bar { animation-play-state: paused; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.toast { animation: toast-in 180ms ease-out; }
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.modal[open] { animation: modal-in 160ms ease-out; }
+
+/* Skeleton shimmer for loading states. */
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+.skeleton {
+  background: linear-gradient(90deg, var(--linea-2) 0%, var(--fondo) 50%, var(--linea-2) 100%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast, .modal[open], .skeleton { animation: none; }
+  .toast-bar { animation-duration: 0s !important; }
+}
