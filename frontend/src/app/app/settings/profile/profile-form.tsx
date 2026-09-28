@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/feedback/toast";
 import { Avatar, Button, Card, Label } from "@/components/ui";
-import { useMessages } from "@/i18n/client";
+import { useLocale, useMessages } from "@/i18n/client";
 import { LOCALES, THEMES, fmt, type Locale, type Theme } from "@/i18n/config";
 import { saveProfile, type FormState } from "@/lib/actions";
 import type { Availability, StaffProfile } from "@/lib/api/types";
@@ -59,11 +59,12 @@ export function ProfileForm({ profile }: { profile: StaffProfile }) {
   const [avatar, setAvatar] = useState(profile.avatarUrl ?? "");
   const [removed, setRemoved] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState(profile.displayName);
-  const [greeting, setGreeting] = useState(profile.greeting);
+  const [displayName, setDisplayName] = useState(profile.displayName ?? "");
+  const [greeting, setGreeting] = useState(profile.greeting ?? "");
   const [availability, setAvailability] = useState<Availability>(profile.availability);
-  const [locale, setLocale] = useState<Locale>(profile.locale);
-  const [theme, setTheme] = useState<Theme>(profile.theme);
+  const uiLocale = useLocale();
+  const [locale, setLocale] = useState<Locale>(profile.locale ?? uiLocale);
+  const [theme, setTheme] = useState<Theme>(profile.theme ?? "system");
   const fileRef = useRef<HTMLInputElement>(null);
   const handlesChats = profile.maxConcurrentChats > 0;
 

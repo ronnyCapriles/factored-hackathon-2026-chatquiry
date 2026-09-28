@@ -126,10 +126,13 @@ export const mockApi: ChatquiryApi = {
   },
 
   async getProfile(userId) {
-    return profiles.get(userId) ?? null;
+    const stored = profiles.get(userId);
+    const defaults = f.staff.find((s) => s.id === userId);
+    // Stored edits can predate newer fields, so fill the gaps from the fixture.
+    return stored && defaults ? { ...defaults, ...stored } : (stored ?? null);
   },
   async updateProfile(userId, update) {
-    const current = profiles.get(userId);
+    const current = await mockApi.getProfile(userId);
     if (!current) throw new Error("unknown user");
     const next = { ...current, ...update, avatarUrl: update.avatarUrl === "" ? undefined : (update.avatarUrl ?? current.avatarUrl) };
     profiles.set(userId, next);
