@@ -311,11 +311,11 @@ policies:
       en: When the AI may open a dispute and when a person must step in.
       pt: Quando a IA pode abrir uma contestação e quando uma pessoa deve intervir.
     parameters:
-      values: { max_age_days: 120, auto_limit_usd: 500, fraud_score_threshold: 70 }
+      values: { max_age_days: 120, auto_limit_usd: 500, fraud_score_threshold: 30 }
       display:
         - { label: { es: Antigüedad máxima, en: Maximum age, pt: Idade máxima }, display: { es: 120 días, en: 120 days, pt: 120 dias } }
         - { label: { es: Tope para disputa automática, en: Automatic dispute limit, pt: Limite para contestação automática }, display: { es: USD 500 equivalentes, en: USD 500 equivalent, pt: USD 500 equivalentes } }
-        - { label: { es: Señal de fraude, en: Fraud signal, pt: Sinal de fraude }, display: { es: "fraud_score ≥ 70", en: "fraud_score ≥ 70", pt: "fraud_score ≥ 70" } }
+        - { label: { es: Señal de fraude, en: Fraud signal, pt: Sinal de fraude }, display: { es: "is_fraud o fraud_score > 30", en: "is_fraud or fraud_score > 30", pt: "is_fraud ou fraud_score > 30" } }
     outcomes:
       - { when: { es: Dentro del tope y sin señal de fraude, en: Within the limit and no fraud signal, pt: Dentro do limite e sem sinal de fraude }, decision: { es: Abrir disputa con el sí del cliente, en: Open the dispute after the customer's yes, pt: Abrir contestação com o sim do cliente } }
       - { human: true, when: { es: Con señal de fraude, en: With a fraud signal, pt: Com sinal de fraude }, decision: { es: Abrir disputa y pasar a Seguridad y fraude, en: Open the dispute and hand off to Security and fraud, pt: Abrir contestação e passar para Segurança e fraude } }

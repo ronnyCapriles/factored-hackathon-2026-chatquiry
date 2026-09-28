@@ -25,6 +25,8 @@ class Customer(Base, Tenant):
     detected_accent: Mapped[str | None] = mapped_column(String(50))
     registration_date: Mapped[datetime] = mapped_column(DateTime)
     preferred_language: Mapped[str] = mapped_column(String(2), default="es")
+    # Set on the handful of customers the test chat offers; each one carries a scenario in its data.
+    demo_scenario: Mapped[str | None] = mapped_column(String(40))
 
 
 class Product(Base, Tenant):
