@@ -1,0 +1,46 @@
+import "server-only";
+import { cookies } from "next/headers";
+import { forbidden, redirect } from "next/navigation";
+import { cache } from "react";
+import type { Role, StaffUser } from "./api/types";
+import { STAFF_COOKIE, signToken, verifyToken } from "./session-token";
+
+export { STAFF_COOKIE };
+
+/** Signed httpOnly cookie. The payload carries the backend token for server-side calls. */
+
+const TTL_MINUTES = Number(process.env.SESSION_TTL_MINUTES ?? 15);
+
+export async function createStaffSession(user: StaffUser, token: string) {
+  const exp = Date.now() + TTL_MINUTES * 60_000;
+  (await cookies()).set(STAFF_COOKIE, signToken({ user, token, exp }), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    expires: new Date(exp),
+  });
+}
+
+export async function destroyStaffSession() {
+  (await cookies()).delete(STAFF_COOKIE);
+}
+
+export const getStaffSession = cache(async () => verifyToken((await cookies()).get(STAFF_COOKIE)?.value));
+
+/** Role check for pages; the proxy only runs a quick first pass. */
+export async function requireStaff(...roles: Role[]): Promise<StaffUser> {
+  const session = await getStaffSession();
+  if (!session) redirect("/login?expired=1");
+  if (roles.length && !roles.includes(session.user.role)) forbidden();
+  return session.user;
+}
+
+export function homeFor(role: Role) {
+  return role === "admin" ? "/app/operations" : "/app/conversations";
+}
+
+/** Accepts only in-app paths, which prevents open redirects. */
+export function safeNext(next: unknown): string | null {
+  return typeof next === "string" && /^\/app(\/[\w\-/]*)?(\?[\w=&%-]*)?$/.test(next) ? next : null;
+}
