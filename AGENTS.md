@@ -20,6 +20,16 @@ CI lives in `.github/workflows/`, one workflow per unit, filtered by path so a c
 
 Each unit has its own tooling: `npm` in `frontend/`, `uv` in `backend/`, `pipeline/`, `ml/` and `eval/`. Read the unit's own `AGENTS.md` when it has one (for example `frontend/AGENTS.md`).
 
+## Running locally
+
+```
+docker compose up -d db                                   # Postgres on 127.0.0.1:5433
+cd backend && uv run alembic upgrade head && uv run python -m app.seed
+cd pipeline && uv run cq-pipeline all --mode full          # needs the dataset in data/bronze
+cd backend && uv run uvicorn app.main:app --port 8010
+cd frontend && npm run dev
+```
+
 ## Commits
 
 One line, Conventional Commits style:
