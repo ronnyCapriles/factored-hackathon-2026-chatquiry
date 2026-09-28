@@ -137,7 +137,7 @@ export default async function Landing() {
               <Pill>{l.connect.c3}</Pill>
             </div>
             <div className="flex flex-col items-center gap-3.5 rounded-telefono border-2 border-tinta bg-marca p-7 text-center shadow-[8px_8px_0_var(--sombra)]">
-              <StateBubble state="resolved" size={64} />
+              <StateBubble state="resolved" size={64} onBrand />
               <span className="text-[26px] font-bold">Chatquiry</span>
               <span className="text-[15px] leading-normal">{l.connect.hub}</span>
             </div>

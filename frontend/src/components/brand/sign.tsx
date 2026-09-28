@@ -14,8 +14,8 @@ function Dots({ fill }: { fill: string }) {
   );
 }
 
-/** `inverse` draws the needs-human bubble for use on a coral fill. */
-export function StateBubble({ state, size = 24, inverse = false }: { state: ConversationState; size?: number; inverse?: boolean }) {
+/** `inverse` draws the needs-human bubble on a coral fill; `onBrand` keeps the logo readable on yellow. */
+export function StateBubble({ state, size = 24, inverse = false, onBrand = false }: { state: ConversationState; size?: number; inverse?: boolean; onBrand?: boolean }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" className="shrink-0">
       {state === "ai_attending" && (
@@ -47,8 +47,8 @@ export function StateBubble({ state, size = 24, inverse = false }: { state: Conv
       )}
       {state === "resolved" && (
         <>
-          <path d={BUBBLE} fill="var(--logo-burbuja)" />
-          <path d="M21 27l7 7 14-14" fill="none" stroke="var(--logo-check)" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={BUBBLE} fill={onBrand ? "var(--sobre-marca)" : "var(--logo-burbuja)"} />
+          <path d="M21 27l7 7 14-14" fill="none" stroke={onBrand ? "var(--marca)" : "var(--logo-check)"} strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
         </>
       )}
     </svg>
@@ -65,10 +65,10 @@ export function VerifiedMark({ size = 28 }: { size?: number }) {
   );
 }
 
-export function Wordmark({ size = 28, className = "" }: { size?: number; className?: string }) {
+export function Wordmark({ size = 28, className = "", onBrand = false }: { size?: number; className?: string; onBrand?: boolean }) {
   return (
     <span className={`inline-flex items-center gap-2.5 font-bold tracking-tight ${className}`}>
-      <StateBubble state="resolved" size={size} />
+      <StateBubble state="resolved" size={size} onBrand={onBrand} />
       <span style={{ fontSize: size * 0.72 }}>Chatquiry</span>
     </span>
   );
