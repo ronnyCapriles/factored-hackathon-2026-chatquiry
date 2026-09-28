@@ -1,0 +1,24 @@
+name: data
+
+on:
+  push:
+    branches: [main]
+    paths: ["pipeline/**", ".github/workflows/data.yml"]
+  pull_request:
+    paths: ["pipeline/**", ".github/workflows/data.yml"]
+
+defaults:
+  run:
+    working-directory: pipeline
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check chatquiry_pipeline tests
+      - run: uv run ruff format --check chatquiry_pipeline tests
+      # The fixture is synthetic; the organizer dataset never enters CI.
+      - run: uv run pytest -q
