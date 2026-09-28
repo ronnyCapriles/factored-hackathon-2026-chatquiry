@@ -1,0 +1,19 @@
+# Local development. Production compose lives in infra/.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: chatquiry
+      POSTGRES_PASSWORD: chatquiry
+      POSTGRES_DB: chatquiry
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatquiry"]
+      interval: 3s
+      retries: 20
+
+volumes:
+  pgdata:

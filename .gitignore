@@ -1,0 +1,25 @@
+# secrets & organizer material (contains credentials — never commit)
+.env
+.env.*
+!.env.example
+*.pdf
+*.excalidraw
+Sistema@2x.png
+# data
+data/
+*.parquet
+*.duckdb
+# python
+__pycache__/
+.venv/
+.pytest_cache/
+*.egg-info/
+# node
+node_modules/
+.next/
+# terraform
+.terraform/
+*.tfstate*
+*.tfvars
+.claude/
+*.log
