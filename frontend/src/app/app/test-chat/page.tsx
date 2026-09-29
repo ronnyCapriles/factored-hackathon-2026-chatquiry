@@ -11,11 +11,19 @@ export async function generateMetadata() {
 
 export default async function TestChatPage({ searchParams }: PageProps<"/app/test-chat">) {
   await requireStaff();
-  const customers = await api().listTestCustomers();
+  const [customers, t] = await Promise.all([api().listTestCustomers(), getMessages()]);
+  const m = t.testChat;
   const sp = await searchParams;
   const selected = customers.find((c) => c.customerId === sp.customer) ?? customers[0];
-  const [greeting, config, t] = await Promise.all([api().testChatGreeting(selected.customerId), api().getConfig(), getMessages()]);
-  const m = t.testChat;
+  if (!selected) {
+    return (
+      <div className="flex flex-col gap-2 px-8 py-7">
+        <h1 className="text-[28px] font-bold tracking-tight">{m.title}</h1>
+        <p className="max-w-[560px] text-[15px] leading-normal text-tinta-3">{m.noCustomers}</p>
+      </div>
+    );
+  }
+  const [greeting, config] = await Promise.all([api().testChatGreeting(selected.customerId), api().getConfig()]);
   const liveProfiles = new Set(config.departments.map((d) => d.profile).filter(Boolean));
   const profile = config.profiles.find((p) => liveProfiles.has(p.name)) ?? config.profiles[0];
 

@@ -327,7 +327,8 @@
     "turn": "Turno {n}",
     "conversation": "Conversación {id}",
     "sampleTrace": "ver una traza de ejemplo",
-    "idle": "Registros de ejecución, no razonamiento oculto del modelo."
+    "idle": "Registros de ejecución, no razonamiento oculto del modelo.",
+    "noCustomers": "Aún no hay clientes de prueba. Carga los datos con el pipeline y vuelve a abrir esta página."
   },
   "operations": {
     "title": "Operación",

@@ -327,7 +327,8 @@
     "turn": "Turn {n}",
     "conversation": "Conversation {id}",
     "sampleTrace": "see a sample trace",
-    "idle": "Execution records, not hidden model reasoning."
+    "idle": "Execution records, not hidden model reasoning.",
+    "noCustomers": "There are no test customers yet. Load the data with the pipeline and open this page again."
   },
   "operations": {
     "title": "Operations",
