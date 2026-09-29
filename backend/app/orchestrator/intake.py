@@ -1,0 +1,186 @@
+"""Intake: the guardrail check and the signals routing decides on. Neither talks to the customer."""
+
+import asyncio
+import re
+import unicodedata
+from dataclasses import dataclass
+from functools import lru_cache
+from typing import Protocol
+
+import boto3
+
+from app.core.config import get_settings
+
+
+@dataclass
+class Signals:
+    language: str
+    intent: str
+    intent_confidence: float
+    injection_risk: float
+    needs_human: float
+    frustration: float
+    closing: bool = False
+
+    def as_list(self) -> list[dict]:
+        return [
+            {"name": "language", "value": self.language},
+            {"name": "intent", "value": self.intent, "confidence": round(self.intent_confidence, 2)},
+            {"name": "injection_risk", "value": f"{self.injection_risk:.2f}"},
+            {"name": "needs_human", "value": f"{self.needs_human:.2f}"},
+            {"name": "frustration", "value": f"{self.frustration:.2f}"},
+        ]
+
+    def value(self, name: str) -> str | float | None:
+        return {
+            "language": self.language,
+            "intent": self.intent,
+            "injection_risk": self.injection_risk,
+            "needs_human": self.needs_human,
+            "frustration": self.frustration,
+        }.get(name)
+
+
+class IntakeClassifier(Protocol):
+    name: str
+
+    def classify(self, text: str, current_language: str) -> Signals: ...
+
+
+def plain(text: str) -> str:
+    """Lowercase without accents, so one pattern covers Spanish and Portuguese spellings."""
+    decomposed = unicodedata.normalize("NFKD", text.lower())
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
+
+
+def _any(patterns: str, text: str) -> bool:
+    return re.search(patterns, text) is not None
+
+
+INJECTION = (
+    r"ignora|ignore|olvida (tus|las) instrucciones|esquece|instrucciones|instrucoes|instructions|system prompt|prompt del sistema|"
+    r"actua como|finge ser|you are now|eres ahora|modo desarrollador|developer mode|otra cuenta|outra conta|"
+    r"cuenta (numero )?\d{3,}|conta (numero )?\d{3,}|de mi (hermano|esposa|mama|papa)|do meu (irmao|pai)|da minha (mae|esposa)"
+)
+HUMAN = (
+    r"(hablar|habla|comunicar|pasar|pasame|comunicame) (con|a) (una |un )?(persona|humano|agente|asesor|ejecutivo|alguien)|"
+    r"(falar|fala|passar|me passa) (com|para) (uma |um )?(pessoa|humano|atendente|agente|alguem)|persona real|pessoa de verdade|"
+    r"quiero un (asesor|agente|humano)|quero um (atendente|humano)"
+)
+DISPUTE = (
+    r"no reconozco|nao reconheco|no (la |lo )?hice|nao fiz|no fui yo|nao fui eu|fraude|cobro raro|cargo raro|compra rara|compra estranha|"
+    r"no autorice|nao autorizei|me robaron|clonaron|clonado|disputa|contestar|contestacao|desconozco|desconheco|cobro que no|cobranca que nao"
+)
+STATUS = (
+    r"transferencia|transferi|transfer|no (me )?(ha )?llega|no llego|nao chegou|nao caiu|pendiente|pendente|rechaz|recusad|declin|"
+    r"revert|estorn|movimiento|movimentac|deposito|pago que|pagamento|envie|enviei|no aparece|nao aparece"
+)
+CREDIT = r"credito|prestamo|emprestimo|cupo|limite|hipoteca|tasa de interes|juros|invert|inversion|investimento|acciones|acoes"
+CARD = r"(bloquear|bloquea|bloqueie|perdi|robaron|roubaram) (la |mi |o |meu )?(tarjeta|cartao)|tarjeta nueva|cartao novo|reposicion|segunda via|\bpin\b"
+FRUSTRATION = (
+    r"!!|pesimo|pessimo|horrible|horrivel|terrible|terrivel|harto|cansad|absurdo|inaceptable|inaceitavel|ridiculo|"
+    r"molest|irritad|nadie me|ninguem me|otra vez|de novo"
+)
+CLOSING = r"^(muchas )?gracias|^obrigad|^valeu|^listo|^perfecto|^perfeito|eso es todo|era isso|nada mas|^chau|^tchau|^adios|^ok,? gracias"
+
+PT_HINT = r"\bnao\b|voce|obrigad|reconheco|cartao|\bola\b|\boi\b|\bsim\b|ontem|\besta\b|\bconta\b|\bisso\b|minha|\bmeu\b|cao\b|\bpode\b|\bquero\b|\bda\b|\bdo\b"
+ES_HINT = r"\bno\b|usted|gracias|reconozco|tarjeta|hola|\bsi\b|ayer|cuenta|pueden|quiero|\bmi\b|cion\b|\bel\b|\bla\b|\bdel\b|\bpor\b|\bllega\b|\bhice\b"
+
+
+class RulesClassifier:
+    """Keyword baseline in Spanish and Portuguese. The trained model replaces it behind the same interface."""
+
+    name = "rules-v1"
+
+    def classify(self, text: str, current_language: str) -> Signals:
+        t = plain(text)
+        pt, es = len(re.findall(PT_HINT, t)), len(re.findall(ES_HINT, t))
+        language = "pt" if pt > es else "es" if es > pt else current_language
+
+        if _any(DISPUTE, t):
+            intent, confidence = "txn_dispute", 0.9
+        elif _any(STATUS, t):
+            intent, confidence = "txn_status", 0.88
+        elif _any(CARD, t):
+            intent, confidence = "card", 0.85
+        elif _any(CREDIT, t):
+            intent, confidence = "credit", 0.85
+        else:
+            intent, confidence = "other", 0.55
+
+        human = 0.9 if _any(HUMAN, t) else 0.7 if intent == "card" else 0.1
+        return Signals(
+            language=language,
+            intent=intent,
+            intent_confidence=confidence,
+            injection_risk=0.93 if _any(INJECTION, t) else 0.02,
+            needs_human=human,
+            frustration=0.75 if _any(FRUSTRATION, t) or (len(t) > 12 and text.isupper()) else 0.1,
+            closing=intent == "other" and len(t.split()) <= 8 and _any(CLOSING, t),
+        )
+
+
+YES = (
+    r"^(si|sim|claro|dale|ok|okay|de acuerdo|va|vale|por favor|confirmo|correcto|certo|isso|pode|quero|hazlo|abrela|abre|abra|"
+    r"adelante|exacto|exato|afirmativo|perfecto|perfeito)\b"
+)
+NO = r"^(no|nao|nop|nunca|mejor no|melhor nao|todavia no|ainda nao|cancela|cancelar|espera|aguarda)\b"
+
+
+def detect_confirmation(text: str) -> tuple[str, float]:
+    """Deterministic yes or no to a pending action. The model never makes this call."""
+    t = plain(text).strip(" .!¡¿?")
+    if _any(NO, t):
+        return "no", 0.97
+    if _any(YES, t):
+        return "yes", 0.98
+    return "unclear", 0.5
+
+
+@dataclass
+class GuardrailResult:
+    configured: bool
+    blocked: bool
+    text: str
+    findings: list[str]
+
+
+@lru_cache
+def _bedrock_runtime():
+    return boto3.client("bedrock-runtime", region_name=get_settings().aws_region)
+
+
+async def check_guardrail(text: str) -> GuardrailResult:
+    """Bedrock ApplyGuardrail on the customer's message: prompt attacks, denied topics and PII masking."""
+    settings = get_settings()
+    if not settings.guardrail_id:
+        return GuardrailResult(False, False, text, [])
+    response = await asyncio.to_thread(
+        _bedrock_runtime().apply_guardrail,
+        guardrailIdentifier=settings.guardrail_id,
+        guardrailVersion=settings.guardrail_version,
+        source="INPUT",
+        content=[{"text": {"text": text}}],
+    )
+    findings: list[str] = []
+    blocked = False
+    for assessment in response.get("assessments", []):
+        groups = [
+            assessment.get("contentPolicy", {}).get("filters", []),
+            assessment.get("topicPolicy", {}).get("topics", []),
+            assessment.get("wordPolicy", {}).get("customWords", []),
+            assessment.get("wordPolicy", {}).get("managedWordLists", []),
+            assessment.get("sensitiveInformationPolicy", {}).get("piiEntities", []),
+        ]
+        for group in groups:
+            for item in group:
+                findings.append(item.get("type") or item.get("name") or item.get("match") or "finding")
+                blocked = blocked or item.get("action") == "BLOCKED"
+    outputs = response.get("outputs") or []
+    masked = outputs[0]["text"] if outputs and not blocked else text
+    return GuardrailResult(True, blocked, masked, findings)
+
+
+@lru_cache
+def get_classifier() -> IntakeClassifier:
+    return RulesClassifier()
