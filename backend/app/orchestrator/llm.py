@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Protocol
 
-from anthropic import AsyncAnthropicBedrockMantle
+from anthropic import AsyncAnthropicBedrock
 
 from app.core.config import get_settings
 
@@ -37,22 +37,22 @@ class LLM(Protocol):
 
 
 class BedrockLLM:
-    """Claude on Amazon Bedrock through the Messages API endpoint."""
+    """Claude on Amazon Bedrock through InvokeModel, where the cross-region profiles are served."""
 
     def __init__(self, model: str, region: str, effort: str, timeout: float) -> None:
         self.model = model
         self.effort = effort
-        self.client = AsyncAnthropicBedrockMantle(aws_region=region, timeout=timeout, max_retries=2)
+        self.client = AsyncAnthropicBedrock(aws_region=region, timeout=timeout, max_retries=2)
 
     async def complete(self, *, system: str, messages: list[dict], tools: list[dict]) -> LLMReply:
         response = await self.client.messages.create(
             model=self.model,
             max_tokens=4096,
-            system=system,
+            # The breakpoint on the system prompt caches tools and system together; both are stable across turns.
+            system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
             messages=messages,
             tools=tools,
             output_config={"effort": self.effort},
-            cache_control={"type": "ephemeral"},
         )
         usage = response.usage
         return LLMReply(

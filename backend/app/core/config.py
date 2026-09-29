@@ -18,8 +18,9 @@ class Settings(BaseSettings):
     customer_assertion_public_key: str | None = None
 
     aws_region: str = "us-east-1"
-    bedrock_model: str = "anthropic.claude-sonnet-5"
-    bedrock_fallback_model: str = "anthropic.claude-haiku-4-5"
+    # Cross-region inference profiles; Sonnet 5.5 has no single-region one.
+    bedrock_model: str = "global.anthropic.claude-sonnet-5-5"
+    bedrock_fallback_model: str = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
     guardrail_id: str | None = None
     guardrail_version: str = "DRAFT"
     llm_effort: str = "low"

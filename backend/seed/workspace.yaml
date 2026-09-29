@@ -63,7 +63,7 @@ profiles:
       es: Hola, Ricardo. Soy Lía, de Banco LATAM. ¿En qué te ayudo hoy?
       pt: Olá, Rafael! Aqui é a Lía, do Banco LATAM. Como posso ajudar?
     languages: [es, pt]
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5
     fallback_model: claude-haiku-4-5
     prompt_version: lia@v0.3
     prompt_history:
@@ -94,7 +94,7 @@ profiles:
       pt: Olá, sou o Nico, do Banco LATAM. O que aconteceu com o seu cartão?
     languages: [es, pt]
     model: claude-haiku-4-5
-    fallback_model: claude-sonnet-5
+    fallback_model: claude-sonnet-5-5
     prompt_version: nico@v0.1-draft
     prompt_history:
       - { version: nico@v0.1-draft, date: "2026-09-28", current: true, note: { es: Borrador, en: Draft, pt: Rascunho } }
