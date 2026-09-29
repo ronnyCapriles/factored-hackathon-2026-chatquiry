@@ -2,6 +2,7 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import distinct_on
 
 from app.api.deps import Session, Staff
 from app.core.context import RequestContext
@@ -50,7 +51,7 @@ async def _last_messages(session: Session, ctx: RequestContext, ids: list[str]) 
         _scoped(select(Message), Message, ctx)
         .where(Message.conversation_id.in_(ids))
         .order_by(Message.conversation_id, Message.created_at.desc())
-        .distinct(Message.conversation_id)
+        .ext(distinct_on(Message.conversation_id))
     )
     return {m.conversation_id: m for m in rows}
 
@@ -155,7 +156,7 @@ async def _customer_out(session: Session, ctx: RequestContext, customer: Custome
             _scoped(select(Message), Message, ctx)
             .where(Message.conversation_id.in_([c.id for c in convs]), Message.author == "customer")
             .order_by(Message.conversation_id, Message.created_at)
-            .distinct(Message.conversation_id)
+            .ext(distinct_on(Message.conversation_id))
         )
         first_msgs = {m.conversation_id: m.text for m in rows}
 
