@@ -22,13 +22,21 @@ Each unit has its own tooling: `npm` in `frontend/`, `uv` in `backend/`, `pipeli
 
 ## Running locally
 
+Postgres and the API run in Docker with hot reload; the frontend runs on the host and calls the API server side.
+
 ```
-docker compose up -d db                                   # Postgres on 127.0.0.1:5433
-cd backend && uv run alembic upgrade head && uv run python -m app.seed
-cd pipeline && uv run cq-pipeline all --mode full          # needs the dataset in data/bronze
-cd backend && uv run uvicorn app.main:app --port 8010
-cd frontend && npm run dev
+cp .env.example .env                                      # AWS_PROFILE for Bedrock
+docker compose up -d --build                              # db on 127.0.0.1:5433, API on 127.0.0.1:8010; migrates and seeds on start
+cd pipeline && uv run cq-pipeline all --mode full         # serving data; needs the dataset in data/bronze
+cp frontend/.env.example frontend/.env.local
+cd frontend && npm run dev                                # http://localhost:3000
 ```
+
+- `docker compose logs -f api` follows the API, `docker compose exec api pytest` runs the backend tests.
+- A change to `backend/pyproject.toml` needs `docker compose up -d --build api`.
+- The API image has two targets: `dev` (this stack) and `prod` (the EC2 image). `CQ_ENV=prod` hides the API docs and refuses the default secrets.
+- `CHATQUIRY_API_MODE=mock` in `frontend/.env.local` runs the frontend on built-in fixtures, without the API.
+- Seeded staff sign in with the password `demo-demo` outside production.
 
 ## Commits
 
