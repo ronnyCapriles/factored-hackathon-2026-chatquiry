@@ -23,7 +23,7 @@ import type {
 export type ConversationFilter = "human" | "ai" | "resolved" | "all";
 
 export interface ChatquiryApi {
-  authenticateStaff(email: string, password: string): Promise<{ user: StaffUser; token: string } | null>;
+  authenticateStaff(email: string, password: string): Promise<{ user: StaffUser; token: string; expiresAt: string } | null>;
 
   listConversations(filter: ConversationFilter): Promise<ConversationSummary[]>;
   conversationCounts(): Promise<Record<ConversationFilter, number>>;

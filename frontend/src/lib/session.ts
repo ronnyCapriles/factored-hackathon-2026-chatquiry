@@ -7,12 +7,12 @@ import { STAFF_COOKIE, signToken, verifyToken } from "./session-token";
 
 export { STAFF_COOKIE };
 
-/** Signed httpOnly cookie. The payload carries the backend token for server-side calls. */
-
-const TTL_MINUTES = Number(process.env.SESSION_TTL_MINUTES ?? 15);
-
-export async function createStaffSession(user: StaffUser, token: string) {
-  const exp = Date.now() + TTL_MINUTES * 60_000;
+/**
+ * Signed httpOnly cookie. The payload carries the backend token for server-side calls,
+ * and it expires with that token so a page never holds a cookie the API already rejects.
+ */
+export async function createStaffSession(user: StaffUser, token: string, expiresAt: string) {
+  const exp = Date.parse(expiresAt);
   (await cookies()).set(STAFF_COOKIE, signToken({ user, token, exp }), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

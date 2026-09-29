@@ -20,8 +20,8 @@ export async function staffLogin(_prev: FormState, form: FormData): Promise<Form
   const result = await api().authenticateStaff(email, password);
   // Same answer for unknown user and wrong password.
   if (!result) return { error: "invalid" };
-  await createStaffSession(result.user, result.token);
-  const profile = await api().getProfile(result.user.id);
+  await createStaffSession(result.user, result.token, result.expiresAt);
+  const profile = await api(result.token).getProfile(result.user.id);
   if (profile) {
     const jar = await cookies();
     jar.set(LOCALE_COOKIE, profile.locale, { path: "/", maxAge: YEAR, sameSite: "lax" });

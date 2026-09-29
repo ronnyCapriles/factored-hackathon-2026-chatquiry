@@ -40,7 +40,8 @@ export const mockApi: ChatquiryApi = {
     const p = f.staff.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
     if (!p || password !== f.DEMO_PASSWORD) return null;
     const { id, name, initials, role, specialty } = p;
-    return { user: { id, name, initials, email: p.email, role, specialty }, token: `mock.${id}` };
+    const expiresAt = new Date(Date.now() + 15 * 60_000).toISOString();
+    return { user: { id, name, initials, email: p.email, role, specialty }, token: `mock.${id}`, expiresAt };
   },
 
   async listConversations(filter) {
