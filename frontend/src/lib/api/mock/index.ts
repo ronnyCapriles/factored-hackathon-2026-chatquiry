@@ -83,7 +83,7 @@ export const mockApi: ChatquiryApi = {
       cost: null,
       steps: [
         { t: "0.000", step: "intake.guardrail", detail: "Bedrock Guardrails · sin hallazgos", status: "allowed", ms: 0 },
-        { t: "0.100", step: "intake.laya", detail: `idioma ${conv.language}`, status: "classified", ms: 0 },
+        { t: "0.100", step: "intake.classifier", detail: `idioma ${conv.language}`, status: "classified", ms: 0 },
         ...(conv.handoff
           ? [{ t: "—", step: "handoff.create", detail: `${conv.handoff.id} · ${conv.handoff.reason}`, status: "escalated" as const, ms: 0 }]
           : []),

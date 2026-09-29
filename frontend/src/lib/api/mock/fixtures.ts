@@ -418,7 +418,7 @@ export const traces: Trace[] = [
     cost: null,
     steps: [
       { t: "0.000", step: "intake.guardrail", detail: "Bedrock Guardrails · ataque de prompt: ninguno · PII enmascarada: 1", status: "allowed", ms: 142 },
-      { t: "0.143", step: "intake.laya", detail: "intención txn_dispute p=0.91 · inyección p=0.03 · requiere persona p=0.78 · idioma pt", status: "classified", ms: 48 },
+      { t: "0.143", step: "intake.classifier", detail: "intención txn_dispute p=0.91 · inyección p=0.03 · requiere persona p=0.78 · idioma pt", status: "classified", ms: 48 },
       { t: "0.192", step: "router", detail: "Regla R-07 “señal de fraude → Disputas” · perfil Lía", status: "routed", ms: 3 },
       { t: "0.201", step: "tool.get_transaction", detail: "TRX-5C09 · acotado al cliente de la sesión", status: "ok", ms: 21 },
       { t: "0.230", step: "policy.evaluate", detail: "POL-DSP-FRAUD-01 → disputa permitida, luego pasar a persona", status: "decision", ms: 2 },
@@ -429,7 +429,7 @@ export const traces: Trace[] = [
       { t: "43.03", step: "handoff.create", detail: "HND-0043 → Andrea Ríos (fraude) · 4 hechos, 1 acción, 2 pendientes", status: "escalated", ms: 12 },
     ],
     rules: ["R-07 · router fraude", "POL-DSP-FRAUD-01 · v1 (sintética)", "PERM-DISPUTE · requiere “sí” explícito"],
-    versions: ["modelo mistral-large-3", "prompt lia@v0.3", "laya-multilingual · umbral 0.62", "guardrail gr-chatquiry v2"],
+    versions: ["modelo mistral-large-3", "prompt lia@v0.3", "clasificador rules-v1", "guardrail gr-chatquiry v2"],
   },
 ];
 
@@ -621,7 +621,7 @@ export const config: Config = {
     },
   ],
   intake: {
-    classifier: "laya-multilingual",
+    classifier: "rules-v1",
     guardrail: "gr-chatquiry v2",
     signals: [
       { name: "language", kind: "choice", description: "Idioma del mensaje: es · pt · otro" },
