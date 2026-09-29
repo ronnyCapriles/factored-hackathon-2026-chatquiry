@@ -21,5 +21,7 @@ node_modules/
 .terraform/
 *.tfstate*
 *.tfvars
+# Environment values only; secrets go to SSM, never here.
+!infra/prod/**/terraform.tfvars
 .claude/
 *.log
