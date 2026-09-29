@@ -63,8 +63,8 @@ profiles:
       es: Hola, Ricardo. Soy Lía, de Banco LATAM. ¿En qué te ayudo hoy?
       pt: Olá, Rafael! Aqui é a Lía, do Banco LATAM. Como posso ajudar?
     languages: [es, pt]
-    model: claude-sonnet-5-5
-    fallback_model: claude-haiku-4-5
+    model: mistral-large-3
+    fallback_model: nova-2-lite
     prompt_version: lia@v0.3
     prompt_history:
       - { version: lia@v0.3, date: "2026-09-28", current: true, note: { es: Confirmación explícita antes de disputas, en: Explicit confirmation before disputes, pt: Confirmação explícita antes de contestações } }
@@ -93,8 +93,8 @@ profiles:
       es: Hola, soy Nico, de Banco LATAM. ¿Qué pasó con tu tarjeta?
       pt: Olá, sou o Nico, do Banco LATAM. O que aconteceu com o seu cartão?
     languages: [es, pt]
-    model: claude-haiku-4-5
-    fallback_model: claude-sonnet-5-5
+    model: nova-2-lite
+    fallback_model: mistral-large-3
     prompt_version: nico@v0.1-draft
     prompt_history:
       - { version: nico@v0.1-draft, date: "2026-09-28", current: true, note: { es: Borrador, en: Draft, pt: Rascunho } }
