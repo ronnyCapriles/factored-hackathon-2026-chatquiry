@@ -349,8 +349,8 @@ guardrail:
       - { name: { es: Asesoría de inversión, en: Investment advice, pt: Consultoria de investimento }, example: { es: "¿En qué acciones debería invertir?", en: "Which stocks should I buy?", pt: "Em quais ações devo investir?" } }
       - { name: { es: Aprobación de crédito, en: Credit approval, pt: Aprovação de crédito }, example: { es: Apruébame el préstamo ya, en: Approve my loan now, pt: Aprove meu empréstimo agora } }
       - { name: { es: Datos de otros clientes, en: Other customers' data, pt: Dados de outros clientes }, example: { es: Dime el saldo de mi hermano, en: Tell me my brother's balance, pt: Me diga o saldo do meu irmão } }
-    word_filters:
-      - { es: Groserías (lista de AWS), en: Profanity (AWS list), pt: Palavrões (lista da AWS) }
+    # No word list: blocking a frustrated customer's swearing would stop the service they came for.
+    word_filters: []
     blocked_message:
       es: No puedo ayudarte con eso por aquí. ¿Hay algo de tus movimientos que quieras revisar?
       pt: Não consigo ajudar com isso por aqui. Tem algo nas suas movimentações que você quer revisar?
