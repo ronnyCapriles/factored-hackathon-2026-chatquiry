@@ -1,6 +1,5 @@
 import json
 from datetime import date, datetime, time
-from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Query
@@ -8,6 +7,7 @@ from sqlalchemy import func, or_, select
 
 from app.api.deps import Admin, Session, Staff
 from app.api.routes.auth import profile_out
+from app.core.config import get_settings
 from app.core.context import RequestContext, localized
 from app.models import AiProfile, ApiKey, AuditLog, Channel, Connector, Conversation, Department, Guardrail, IntakeSignal, Policy, RoutingRule, StaffUser, Tool
 from app.schemas.api import AuditEntryOut, AuditPage, StaffProfileOut
@@ -40,9 +40,6 @@ from app.schemas.config import (
 from app.services.i18n import T
 
 router = APIRouter(prefix="/v1", tags=["admin"])
-
-# Written by the evaluation harness; the operations page shows it when present.
-EVAL_RESULTS = Path(__file__).resolve().parents[3] / "eval" / "results" / "latest.json"
 
 
 def _ws(model, ctx: RequestContext):
@@ -180,7 +177,8 @@ async def operations(ctx: Admin, session: Session) -> OperationsOut:
     human_waiting = await session.scalar(
         select(func.count()).select_from(Conversation).where(Conversation.workspace_id == ctx.workspace_id, Conversation.state == "needs_human")
     )
-    results = json.loads(EVAL_RESULTS.read_text()) if EVAL_RESULTS.exists() else None
+    path = get_settings().eval_results
+    results = json.loads(path.read_text()) if path.exists() else None
     kpi = (results or {}).get("kpis", {})
     keys = [("safe_resolution", True), ("containment", True), ("handoff_quality", True), ("unsafe", True), ("latency", False), ("cost", False)]
     return OperationsOut(
