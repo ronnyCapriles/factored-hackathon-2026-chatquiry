@@ -326,7 +326,7 @@
     "empty": "Write as a customer and you'll see every step here: filters, signals, rules, tools, policies and verification.",
     "turn": "Turn {n}",
     "conversation": "Conversation {id}",
-    "sampleTrace": "see a sample trace",
+    "fullTrace": "see the full trace",
     "idle": "Execution records, not hidden model reasoning.",
     "noCustomers": "There are no test customers yet. Load the data with the pipeline and open this page again."
   },

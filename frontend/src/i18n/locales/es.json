@@ -326,7 +326,7 @@
     "empty": "Escribe como cliente y aquí verás cada paso: filtros, señales, reglas, herramientas, políticas y verificación.",
     "turn": "Turno {n}",
     "conversation": "Conversación {id}",
-    "sampleTrace": "ver una traza de ejemplo",
+    "fullTrace": "ver la traza completa",
     "idle": "Registros de ejecución, no razonamiento oculto del modelo.",
     "noCustomers": "Aún no hay clientes de prueba. Carga los datos con el pipeline y vuelve a abrir esta página."
   },

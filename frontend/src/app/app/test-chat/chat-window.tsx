@@ -268,8 +268,8 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
           {conversationId ? (
             <span>
               {fmt(m.conversation, { id: conversationId })} ·{" "}
-              <Link href="/app/traces/CNV-7A31" className="font-semibold text-tinta underline underline-offset-4">
-                {m.sampleTrace}
+              <Link href={`/app/traces/${conversationId}`} className="font-semibold text-tinta underline underline-offset-4">
+                {m.fullTrace}
               </Link>
             </span>
           ) : (
