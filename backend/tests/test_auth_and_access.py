@@ -100,3 +100,19 @@ async def test_other_workspace_is_invisible(client, agent):
             await s.execute(delete(Workspace).where(Workspace.id == "WS-OTHER"))
             await s.execute(delete(Organization).where(Organization.id == "ORG-OTHER"))
             await s.commit()
+
+
+async def test_refresh_slides_the_session_but_keeps_the_sign_in_time(client):
+    login = (await client.post("/v1/auth/login", json={"email": "diego.paz@chatquiry.demo", "password": "demo-demo"})).json()
+    renewed = await client.post("/v1/auth/refresh", headers={"Authorization": f"Bearer {login['token']}"})
+    assert renewed.status_code == 200 and renewed.json()["expiresAt"] >= login["expiresAt"]
+    first = jwt.decode(login["token"], get_settings().jwt_secret, algorithms=["HS256"])
+    second = jwt.decode(renewed.json()["token"], get_settings().jwt_secret, algorithms=["HS256"])
+    assert first["auth_time"] == second["auth_time"]
+
+    stale = jwt.encode(
+        {**first, "auth_time": int((datetime.now(UTC) - timedelta(hours=13)).timestamp()), "exp": datetime.now(UTC) + timedelta(minutes=5)},
+        get_settings().jwt_secret,
+        algorithm="HS256",
+    )
+    assert (await client.post("/v1/auth/refresh", headers={"Authorization": f"Bearer {stale}"})).status_code == 401

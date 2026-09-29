@@ -1,9 +1,12 @@
-from fastapi import APIRouter, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Header, HTTPException, status
 from sqlalchemy import func, select
 
 from app.api.deps import Session, Staff
+from app.core.config import get_settings
 from app.core.context import RequestContext
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, decode_access_token, verify_password
 from app.models import StaffUser
 from app.models.base import utcnow
 from app.schemas.api import LoginRequest, LoginResponse, Notifications, ProfileUpdate, StaffProfileOut, StaffUserOut
@@ -50,11 +53,26 @@ async def login(body: LoginRequest, session: Session) -> LoginResponse:
         # One answer for unknown user and wrong password.
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid_credentials")
 
-    token, expires = create_access_token(user.id, {"org": user.org_id, "ws": user.workspace_id, "role": user.role})
+    token, expires = create_access_token(user.id, {"org": user.org_id, "ws": user.workspace_id, "role": user.role, "auth_time": int(utcnow().timestamp())})
     user.last_login_at = utcnow()
     ctx = RequestContext(org_id=user.org_id, workspace_id=user.workspace_id, locale="es")
     await record(session, ctx, actor=user.name, actor_kind="human", action="Signed in", target=user.id, outcome="allowed")
     await session.commit()
+    return LoginResponse(
+        user=StaffUserOut(id=user.id, name=user.name, initials=user.initials, email=user.email, role=user.role, specialty=user.specialty),  # type: ignore[arg-type]
+        token=token,
+        expires_at=expires.isoformat(),
+    )
+
+
+@router.post("/auth/refresh", response_model=LoginResponse)
+async def refresh(ctx: Staff, session: Session, authorization: Annotated[str, Header()]) -> LoginResponse:
+    """Renews a still-valid token; the sign-in time travels along so the absolute cap holds."""
+    user = await _me(session, ctx)
+    auth_time = int(decode_access_token(authorization.split(" ", 1)[1]).get("auth_time", 0))
+    if utcnow().timestamp() - auth_time > get_settings().session_max_hours * 3600:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "session_expired")
+    token, expires = create_access_token(user.id, {"org": user.org_id, "ws": user.workspace_id, "role": user.role, "auth_time": auth_time})
     return LoginResponse(
         user=StaffUserOut(id=user.id, name=user.name, initials=user.initials, email=user.email, role=user.role, specialty=user.specialty),  # type: ignore[arg-type]
         token=token,

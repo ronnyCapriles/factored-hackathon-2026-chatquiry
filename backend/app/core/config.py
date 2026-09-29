@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://chatquiry:chatquiry@127.0.0.1:5433/chatquiry"
 
     jwt_secret: str = Field(default="dev-only-change-me-to-a-long-random-value", min_length=32)
+    # Idle timeout: each request within it slides the session. The absolute cap forces a new sign-in.
     jwt_ttl_minutes: int = 15
+    session_max_hours: int = 12
     # Public key (PEM) of the bank that signs customer assertions for the channel API.
     customer_assertion_public_key: str | None = None
 
