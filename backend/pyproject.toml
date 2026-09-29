@@ -37,3 +37,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "ASYNC"]
+
+[tool.ruff.lint.per-file-ignores]
+# Prompt prose reads better unwrapped.
+"app/orchestrator/prompts.py" = ["E501"]
