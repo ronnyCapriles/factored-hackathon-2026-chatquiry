@@ -416,10 +416,11 @@ class Orchestrator:
         )
         messages = [*self.conversation.agent_messages, self._user_message(out_of_scope, note, department)]
 
+        started = self.rec.now()
         try:
             reply = await self._agent_loop(system, prompts.tool_definitions(tools), messages, box)
         except anthropic.APIError as e:
-            self.rec.add(f"llm.{self._model()}", f"{type(e).__name__}: model unavailable, safe fallback", "blocked")
+            self.rec.add(f"llm.{self._model()}", f"{type(e).__name__}: model unavailable, safe fallback", "blocked", started)
             reply = None
 
         if reply is None:
