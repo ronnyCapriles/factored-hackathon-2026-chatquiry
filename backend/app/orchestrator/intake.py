@@ -21,6 +21,7 @@ class Signals:
     needs_human: float
     frustration: float
     closing: bool = False
+    identity_doubt: bool = False
 
     def as_list(self) -> list[dict]:
         return [
@@ -58,28 +59,42 @@ def _any(patterns: str, text: str) -> bool:
 
 
 INJECTION = (
-    r"ignora|ignore|olvida (tus|las) instrucciones|esquece|instrucciones|instrucoes|instructions|system prompt|prompt del sistema|"
+    r"ignora|ignore|olvida (tus|las) (instrucciones|reglas)|esquece|instrucciones|instrucoes|instructions|system prompt|prompt del sistema|"
     r"actua como|finge ser|you are now|eres ahora|modo desarrollador|developer mode|otra cuenta|outra conta|"
     r"cuenta (numero )?\d{3,}|conta (numero )?\d{3,}|de mi (hermano|esposa|mama|papa)|do meu (irmao|pai)|da minha (mae|esposa)"
 )
+# Someone saying they are not the account holder is a takeover signal, however polite the rest of the message is.
+IDENTITY = (
+    r"no soy (yo|el titular|la titular|el dueno|la duena|el cliente|la cliente)\b|no es mi cuenta|esta cuenta no es mia|cuenta de otra persona|"
+    r"estoy usando (la cuenta|el celular|el telefono) de|encontre (este|su|el) (celular|telefono)|"
+    r"nao sou (eu|o titular|a titular|o dono|a dona|o cliente|a cliente)\b|nao e minha conta|conta de outra pessoa|estou usando (a conta|o celular) de"
+)
 HUMAN = (
-    r"(hablar|habla|comunicar|pasar|pasame|comunicame) (con|a) (una |un )?(persona|humano|agente|asesor|ejecutivo|alguien)|"
-    r"(falar|fala|passar|me passa) (com|para) (uma |um )?(pessoa|humano|atendente|agente|alguem)|persona real|pessoa de verdade|"
-    r"quiero un (asesor|agente|humano)|quero um (atendente|humano)"
+    r"(hablar|habla|comunicar|pasar|pasame|comunicame|atienda|atender) (con|a|me) ?(una |un |el |la )?"
+    r"(persona|humano|agente|asesor|ejecutivo|alguien|supervisor|supervisora|gerente|encargad|operador)|"
+    r"(falar|fala|passar|me passa|atenda|atender) (com|para|me) ?(uma |um |o |a )?(pessoa|humano|atendente|agente|alguem|supervisor|gerente)|"
+    r"persona real|pessoa de verdade|alguien mas|otra persona|alguem mais|outra pessoa|"
+    r"quiero (un|una|al|a un) (asesor|agente|humano|supervisor|gerente|persona)|quero (um|uma|o) (atendente|humano|supervisor|gerente|pessoa)"
 )
 DISPUTE = (
     r"no reconozco|nao reconheco|no (la |lo )?hice|nao fiz|no fui yo|nao fui eu|fraude|cobro raro|cargo raro|compra rara|compra estranha|"
     r"no autorice|nao autorizei|me robaron|clonaron|clonado|disputa|contestar|contestacao|desconozco|desconheco|cobro que no|cobranca que nao"
 )
 STATUS = (
-    r"transferencia|transferi|transfer|no (me )?(ha )?llega|no llego|nao chegou|nao caiu|pendiente|pendente|rechaz|recusad|declin|"
-    r"revert|estorn|movimiento|movimentac|deposito|pago que|pagamento|envie|enviei|no aparece|nao aparece"
+    r"transferencia|transferi|transfer|transacc|transac|no (me )?(ha )?(llega|llegado)|no llego|nada que llega|nao chegou|nao caiu|pendiente|pendente|"
+    r"rechaz|recusad|declin|revert|estorn|movimiento|movimentac|deposit|\bpago\b|pague|pagamento|envie|enviei|no aparece|nao aparece"
 )
-CREDIT = r"credito|prestamo|emprestimo|cupo|limite|hipoteca|tasa de interes|juros|invert|inversion|investimento|acciones|acoes"
+CREDIT = r"credito|prestamo|emprestimo|\bcupo\b|\blimite\b|hipoteca|tasa de interes|juros|\binvert|inversion|investimento|\bacciones\b|\bacoes\b"
 CARD = r"(bloquear|bloquea|bloqueie|perdi|robaron|roubaram) (la |mi |o |meu )?(tarjeta|cartao)|tarjeta nueva|cartao novo|reposicion|segunda via|\bpin\b"
+# Strong: the customer threatens to leave or says the service failed them. Mild: annoyance.
+FRUSTRATION_STRONG = (
+    r"cambiar(me|e)? de banco|trocar de banco|vou sair do banco|me voy del banco|pesimo servicio|mal servicio|pessimo atendimento|"
+    r"no me (estas|esta|estan) ayudando|nao (esta|estao) me ajudando|no sirve|nao serve|inutil|que parte de|totalmente frustrad|muy frustrad|"
+    r"ya no me importa|nao me importa mais|denuncia|superintendencia|procon"
+)
 FRUSTRATION = (
-    r"!!|pesimo|pessimo|horrible|horrivel|terrible|terrivel|harto|cansad|absurdo|inaceptable|inaceitavel|ridiculo|"
-    r"molest|irritad|nadie me|ninguem me|otra vez|de novo"
+    r"!!|frustrad|pesimo|pessimo|horrible|horrivel|terrible|terrivel|harto|cansad|absurdo|inaceptable|inaceitavel|ridiculo|"
+    r"molest|irritad|nadie me|ninguem me|otra vez|de novo|no entiendes|nao entende|no me importa|hasta cuando|ate quando|increible"
 )
 CLOSING = r"^(muchas )?gracias|^obrigad|^valeu|^listo|^perfecto|^perfeito|eso es todo|era isso|nada mas|^chau|^tchau|^adios|^ok,? gracias"
 
@@ -109,14 +124,16 @@ class RulesClassifier:
             intent, confidence = "other", 0.55
 
         human = 0.9 if _any(HUMAN, t) else 0.7 if intent == "card" else 0.1
+        frustration = 0.9 if _any(FRUSTRATION_STRONG, t) else 0.75 if _any(FRUSTRATION, t) or (len(t) > 12 and text.isupper()) else 0.1
         return Signals(
             language=language,
             intent=intent,
             intent_confidence=confidence,
             injection_risk=0.93 if _any(INJECTION, t) else 0.02,
             needs_human=human,
-            frustration=0.75 if _any(FRUSTRATION, t) or (len(t) > 12 and text.isupper()) else 0.1,
+            frustration=frustration,
             closing=intent == "other" and len(t.split()) <= 8 and _any(CLOSING, t),
+            identity_doubt=_any(IDENTITY, t),
         )
 
 
