@@ -42,8 +42,8 @@ module "guardrail" {
     },
     {
       name       = "CreditApproval"
-      definition = "Requests to approve, raise or grant credit, loans or card limits."
-      examples   = ["Apruébame el préstamo ya", "Aumente o limite do meu cartão agora"]
+      definition = "Asking the bank to approve or grant a loan or credit line, or to raise a credit card limit."
+      examples   = ["Apruébame el préstamo ya", "¿Me pueden subir el cupo de la tarjeta?", "Aumente o limite do meu cartão agora"]
     },
     {
       name       = "OtherCustomersData"

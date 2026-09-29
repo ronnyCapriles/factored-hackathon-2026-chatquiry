@@ -31,22 +31,31 @@ resource "aws_bedrock_guardrail" "this" {
     }
   }
 
+  # Without the input side set explicitly, Bedrock only evaluates masking on model output.
   sensitive_information_policy_config {
     dynamic "pii_entities_config" {
       for_each = var.pii_entities
       content {
-        type   = pii_entities_config.value.type
-        action = pii_entities_config.value.action
+        type           = pii_entities_config.value.type
+        action         = pii_entities_config.value.action
+        input_action   = pii_entities_config.value.action
+        input_enabled  = true
+        output_action  = pii_entities_config.value.action
+        output_enabled = true
       }
     }
 
     dynamic "regexes_config" {
       for_each = var.regexes
       content {
-        name        = regexes_config.value.name
-        description = regexes_config.value.description
-        pattern     = regexes_config.value.pattern
-        action      = regexes_config.value.action
+        name           = regexes_config.value.name
+        description    = regexes_config.value.description
+        pattern        = regexes_config.value.pattern
+        action         = regexes_config.value.action
+        input_action   = regexes_config.value.action
+        input_enabled  = true
+        output_action  = regexes_config.value.action
+        output_enabled = true
       }
     }
   }
