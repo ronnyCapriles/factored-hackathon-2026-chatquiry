@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import admin, auth, service, test_chat
+from app.api.routes import admin, auth, channel, service, test_chat
 from app.core.config import get_settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -22,6 +22,7 @@ app.include_router(auth.router)
 app.include_router(service.router)
 app.include_router(admin.router)
 app.include_router(test_chat.router)
+app.include_router(channel.router)
 
 
 @app.get("/health", tags=["ops"])

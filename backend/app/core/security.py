@@ -45,3 +45,18 @@ def new_api_key(environment: str) -> tuple[str, str, str]:
 
 def hash_api_key(key: str) -> str:
     return hashlib.sha256(key.encode()).hexdigest()
+
+
+ASSERTION_AUDIENCE = "chatquiry"
+ASSERTION_MAX_LIFETIME_SECONDS = 600
+
+
+def verify_customer_assertion(token: str) -> str:
+    """The bank signs who the customer is (RS256); we only trust a short-lived assertion for our audience."""
+    public_key = get_settings().customer_assertion_public_key
+    if not public_key:
+        raise jwt.InvalidTokenError("customer assertions are not configured")
+    claims = jwt.decode(token, public_key, algorithms=["RS256"], audience=ASSERTION_AUDIENCE, options={"require": ["exp", "iat", "sub", "aud"]})
+    if claims["exp"] - claims["iat"] > ASSERTION_MAX_LIFETIME_SECONDS:
+        raise jwt.InvalidTokenError("assertion lives too long")
+    return str(claims["sub"])
