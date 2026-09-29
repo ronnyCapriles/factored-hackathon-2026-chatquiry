@@ -10,6 +10,7 @@ from app.api.routes.auth import profile_out
 from app.core.config import get_settings
 from app.core.context import RequestContext, localized
 from app.models import AiProfile, ApiKey, AuditLog, Channel, Connector, Conversation, Department, Guardrail, IntakeSignal, Policy, RoutingRule, StaffUser, Tool
+from app.orchestrator.intake import get_classifier
 from app.schemas.api import AuditEntryOut, AuditPage, StaffProfileOut
 from app.schemas.config import (
     AiProfileOut,
@@ -117,7 +118,7 @@ async def get_config(ctx: Staff, session: Session) -> ConfigOut:
             for t in tools
         ],
         intake=IntakeOut(
-            classifier="laya-multilingual",
+            classifier=get_classifier().name,
             guardrail=guardrails[0].id if guardrails else "",
             signals=[IntakeSignalOut(name=s.name, kind=s.kind, description=localized(s.description, loc), threshold=s.threshold) for s in signals],  # type: ignore[arg-type]
         ),

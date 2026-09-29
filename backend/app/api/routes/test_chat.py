@@ -1,24 +1,25 @@
 from datetime import UTC, datetime
+from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 
 from app.api.deps import Session, Staff
-from app.core.context import RequestContext
-from app.models import AiProfile, Customer, Department, Organization
-from app.schemas.api import MessageOut, TestCustomerOut
+from app.core.context import RequestContext, localized
+from app.models import Conversation, Customer, StaffUser
+from app.orchestrator.engine import Orchestrator, TurnResult, customer_language, first_name, greeting_text, live_profile
+from app.orchestrator.intake import IntakeClassifier, get_classifier
+from app.orchestrator.llm import LLM, get_llm
+from app.schemas.api import ChatTurnRequest, ChatTurnResponse, MessageOut, Signal, TestCustomerOut, TraceStepOut, TurnInspection
+from app.services.audit import record
 from app.services.format import hhmm
 from app.services.i18n import T
 
 router = APIRouter(prefix="/v1/test-chat", tags=["test-chat"])
 
 
-def _language(c: Customer) -> str:
-    return c.preferred_language if c.preferred_language in ("es", "pt") else "es"
-
-
-async def _demo_customer(session: Session, ctx: RequestContext, customer_id: str) -> Customer:
+async def _demo_customer(session: Session, ctx: RequestContext, customer_id: str | None) -> Customer:
     # Staff may only chat as the demo customers, never as an arbitrary account.
     customer = await session.scalar(
         select(Customer).where(Customer.workspace_id == ctx.workspace_id, Customer.customer_id == customer_id, Customer.demo_scenario.is_not(None))
@@ -26,14 +27,6 @@ async def _demo_customer(session: Session, ctx: RequestContext, customer_id: str
     if not customer:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "not_found")
     return customer
-
-
-async def live_profile(session: Session, ctx: RequestContext) -> AiProfile | None:
-    """The active profile that answers customers: the first one a department uses."""
-    used = select(Department.profile_id).where(Department.workspace_id == ctx.workspace_id, Department.active, Department.profile_id.is_not(None))
-    return await session.scalar(
-        select(AiProfile).where(AiProfile.workspace_id == ctx.workspace_id, AiProfile.status == "active", AiProfile.id.in_(used)).order_by(AiProfile.id)
-    )
 
 
 @router.get("/customers", response_model=list[TestCustomerOut])
@@ -44,11 +37,11 @@ async def test_customers(ctx: Staff, session: Session) -> list[TestCustomerOut]:
     return [
         TestCustomerOut(
             customer_id=c.customer_id,
-            first_name=c.first_name.split()[0],
+            first_name=first_name(c),
             full_name=f"{c.first_name} {c.last_name}",
             country=c.country,
-            language=_language(c),  # type: ignore[arg-type]
-            hint=f"{T(ctx.locale, 'try')}: “{T(_language(c), f'try_{c.demo_scenario}')}”",  # type: ignore[arg-type]
+            language=customer_language(c),  # type: ignore[arg-type]
+            hint=f"{T(ctx.locale, 'try')}: “{T(customer_language(c), f'try_{c.demo_scenario}')}”",  # type: ignore[arg-type]
         )
         for c in rows
     ]
@@ -58,8 +51,61 @@ async def test_customers(ctx: Staff, session: Session) -> list[TestCustomerOut]:
 async def greeting(customer_id: str, ctx: Staff, session: Session) -> list[MessageOut]:
     customer = await _demo_customer(session, ctx, customer_id)
     profile = await live_profile(session, ctx)
-    org = await session.get(Organization, ctx.org_id)
-    if not profile or not org:
+    if not profile:
         return []
-    text = T(_language(customer), "greeting").format(first=customer.first_name.split()[0], ai=profile.name, bank=org.name)  # type: ignore[arg-type]
+    text = await greeting_text(session, ctx, customer, profile)
     return [MessageOut(id=f"MSG-{uuid4().hex[:12]}", author="ai", author_name=profile.name, text=text, at=hhmm(datetime.now(UTC)))]
+
+
+@router.post("/turns", response_model=ChatTurnResponse)
+async def turn(
+    body: ChatTurnRequest,
+    ctx: Staff,
+    session: Session,
+    llm: Annotated[LLM, Depends(get_llm)],
+    classifier: Annotated[IntakeClassifier, Depends(get_classifier)],
+) -> ChatTurnResponse:
+    customer = await _demo_customer(session, ctx, body.customer_id)
+    orchestrator = Orchestrator(session, ctx, llm, classifier)
+    if body.conversation_id:
+        conversation = await session.scalar(
+            select(Conversation).where(
+                Conversation.workspace_id == ctx.workspace_id,
+                Conversation.id == body.conversation_id,
+                Conversation.channel == "test_chat",
+                Conversation.customer_id == customer.customer_id,
+            )
+        )
+        if not conversation:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "not_found")
+    else:
+        conversation = await orchestrator.start(customer, channel="test_chat")
+        staff = await session.get(StaffUser, ctx.user_id)
+        await record(
+            session,
+            ctx,
+            actor=staff.name if staff else "?",
+            actor_kind="human",
+            action=f"Started a test chat as {customer.customer_id}",
+            target=conversation.id,
+            outcome="allowed",
+        )
+    return _response(await orchestrator.turn(conversation, body.text), ctx)
+
+
+def _response(result: TurnResult, ctx: RequestContext) -> ChatTurnResponse:
+    return ChatTurnResponse(
+        conversation_id=result.conversation.id,
+        replies=[MessageOut(id=m.id, author=m.author, author_name=m.author_name, text=m.text, at=hhmm(m.created_at)) for m in result.replies],  # type: ignore[arg-type]
+        handed_off=result.handed_off,
+        inspection=TurnInspection(
+            customer_text=result.customer_text,
+            state=result.conversation.state,  # type: ignore[arg-type]
+            department=localized(result.department.name, ctx.locale) if result.department else "",
+            profile=result.responder,
+            signals=[Signal(**s) for s in result.signals],
+            rule={"id": result.rule.id, "name": localized(result.rule.name, ctx.locale)} if result.rule else None,
+            steps=[TraceStepOut(t=f"{s.t_ms / 1000:.3f}", step=s.step, detail=s.detail, status=s.status, ms=s.ms) for s in result.steps],  # type: ignore[arg-type]
+            total_ms=result.total_ms,
+        ),
+    )
