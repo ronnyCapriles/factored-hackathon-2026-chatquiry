@@ -41,6 +41,27 @@ MESSAGES: dict[str, dict[Locale, str]] = {
         "pt": "Ver operação, auditoria e configuração",
     },
     "perm_self_profile": {"es": "Editar su propio perfil", "en": "Edit their own profile", "pt": "Editar o próprio perfil"},
+    "greeting": {
+        "es": "Hola, {first}. Soy {ai}, de {bank}. ¿En qué te ayudo hoy?",
+        "en": "Hi {first}, I'm {ai} from {bank}. How can I help you today?",
+        "pt": "Olá, {first}! Aqui é {ai}, do {bank}. Como posso ajudar?",
+    },
+    "try": {"es": "Prueba", "en": "Try", "pt": "Teste"},
+    "try_pending_transfer_in_time": {
+        "es": "hice una transferencia y todavía no llega",
+        "en": "I made a transfer and it hasn't arrived",
+        "pt": "fiz uma transferência e ainda não chegou",
+    },
+    "try_pending_transfer_overdue": {
+        "es": "mi transferencia lleva días pendiente",
+        "en": "my transfer has been pending for days",
+        "pt": "minha transferência está pendente há dias",
+    },
+    "try_unrecognized_purchase_fraud_signal": {
+        "es": "no reconozco una compra en mi tarjeta",
+        "en": "I don't recognize a purchase on my card",
+        "pt": "não reconheço uma compra no meu cartão",
+    },
 }
 
 
