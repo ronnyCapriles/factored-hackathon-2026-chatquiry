@@ -12,7 +12,7 @@ from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.security import new_api_key
 from app.models import ApiKey
-from tests.test_orchestrator import ScriptedLLM, say, use, world  # noqa: F401
+from tests.test_orchestrator import ScriptedLLM, call, say, use, world  # noqa: F401
 from tests.test_test_chat import TENANT
 
 PRIVATE = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -45,7 +45,7 @@ def headers(key: str, token: str) -> dict[str, str]:
 
 
 async def test_bank_starts_a_conversation_and_talks_as_its_customer(client, bank):
-    use(ScriptedLLM(say("Claro, cuéntame qué transferencia es.")))
+    use(ScriptedLLM(call("find_transactions", days_back=7), say("Claro, ¿cuál de estas transferencias es?")))
     auth = headers(bank["KEY-T-WRITE"], assertion("CLI-T-ORCH"))
     started = await client.post("/v1/conversations", headers=auth, json={"channel": "whatsapp"})
     assert started.status_code == 201, started.text
