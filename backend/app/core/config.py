@@ -18,16 +18,19 @@ class Settings(BaseSettings):
     customer_assertion_public_key: str | None = None
 
     aws_region: str = "us-east-1"
-    # Cross-region inference profiles; Sonnet 5.5 has no single-region one.
-    bedrock_model: str = "global.anthropic.claude-sonnet-5-5"
-    bedrock_fallback_model: str = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+    # "converse" reaches any Bedrock chat model; "anthropic" is Claude, only where Anthropic serves the account's region.
+    llm_provider: str = "converse"
+    bedrock_model: str = "mistral.mistral-large-3-675b-instruct"
+    bedrock_fallback_model: str = "global.amazon.nova-2-lite-v1:0"
+    llm_temperature: float = 0.2
     guardrail_id: str | None = None
     guardrail_version: str = "DRAFT"
+    # Claude only.
     llm_effort: str = "low"
     llm_timeout_seconds: float = 30.0
     # Bedrock list prices per million tokens, used for the cost shown in traces.
-    llm_price_input_per_mtok: float = 2.0
-    llm_price_output_per_mtok: float = 10.0
+    llm_price_input_per_mtok: float = 0.5
+    llm_price_output_per_mtok: float = 1.5
 
     # Times shown to people; stored timestamps stay in UTC.
     display_timezone: str = "America/Bogota"

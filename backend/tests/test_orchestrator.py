@@ -5,8 +5,6 @@ from collections.abc import Callable
 from datetime import timedelta
 from decimal import Decimal
 
-import anthropic
-import httpx2
 import pytest
 from sqlalchemy import delete, select
 
@@ -25,7 +23,7 @@ from app.models import (
     TraceEvent,
     Transaction,
 )
-from app.orchestrator.llm import LLMReply, get_llm
+from app.orchestrator.llm import LLMReply, LLMUnavailable, get_llm
 from tests.test_test_chat import TENANT, _customer
 
 NOW = get_settings().data_as_of
@@ -51,7 +49,7 @@ def last_tool_result(messages: list[dict]) -> dict:
 
 
 class ScriptedLLM:
-    model = "anthropic.claude-scripted"
+    model = "mistral.scripted-model"
 
     def __init__(self, *steps: Step) -> None:
         self.steps = list(steps)
@@ -65,10 +63,10 @@ class ScriptedLLM:
 
 
 class Unavailable:
-    model = "anthropic.claude-scripted"
+    model = "mistral.scripted-model"
 
     async def complete(self, **_) -> LLMReply:
-        raise anthropic.APIConnectionError(request=httpx2.Request("POST", "https://bedrock.example"))
+        raise LLMUnavailable("ServiceUnavailableException")
 
 
 def _tx(tx_id: str, customer_id: str, **fields) -> Transaction:
@@ -227,7 +225,7 @@ async def test_other_customers_transactions_are_denied_and_audited(client, agent
 async def test_model_outage_falls_back_to_a_person(client, agent, world):
     use(Unavailable())
     turn = await send(client, agent, "Mi transferencia no llega")
-    assert turn["handedOff"] and steps(turn)["llm.claude-scripted"] == "blocked"
+    assert turn["handedOff"] and steps(turn)["llm.scripted-model"] == "blocked"
 
 
 async def test_asking_for_a_person_skips_the_model(client, agent, world):

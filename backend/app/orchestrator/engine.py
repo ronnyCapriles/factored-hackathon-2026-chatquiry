@@ -5,7 +5,6 @@ import secrets
 from dataclasses import dataclass
 from decimal import Decimal
 
-import anthropic
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,7 +30,7 @@ from app.models.base import utcnow
 from app.orchestrator import grounding, prompts
 from app.orchestrator.handoff import hand_off
 from app.orchestrator.intake import GuardrailResult, IntakeClassifier, RulesClassifier, Signals, check_guardrail, detect_confirmation
-from app.orchestrator.llm import LLM, LLMReply
+from app.orchestrator.llm import LLM, LLMReply, LLMUnavailable
 from app.orchestrator.policy import TRANSFER_POLICY
 from app.orchestrator.routing import DISPUTES, route
 from app.orchestrator.texts import money
@@ -419,8 +418,8 @@ class Orchestrator:
         started = self.rec.now()
         try:
             reply = await self._agent_loop(system, prompts.tool_definitions(tools), messages, box)
-        except anthropic.APIError as e:
-            self.rec.add(f"llm.{self._model()}", f"{type(e).__name__}: model unavailable, safe fallback", "blocked", started)
+        except LLMUnavailable as e:
+            self.rec.add(f"llm.{self._model()}", f"{e}: model unavailable, safe fallback", "blocked", started)
             reply = None
 
         if reply is None:
