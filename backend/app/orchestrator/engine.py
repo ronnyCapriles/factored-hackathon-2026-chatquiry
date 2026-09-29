@@ -519,11 +519,15 @@ class Orchestrator:
             if reply.stop_reason == "refusal" or not reply.text:
                 self.rec.add("verify.grounding", f"no usable reply (stop reason {reply.stop_reason})", "blocked")
                 return None
-            # A reply that neither answers nor asks, right after finding the one transaction, is a stall.
-            if not nudged and len(box.matches) == 1 and not box.decisions and not box.proposed and "?" not in reply.text:
+            # A reply that neither answers nor asks, right after finding transactions, is a stall.
+            if not nudged and box.matches and not box.decisions and not box.proposed and "?" not in reply.text:
                 nudged = True
-                self.rec.add("verify.progress", "stalled after a single match; the model is sent back to check it", "pending")
-                note = f"Exactly one transaction matched ({box.matches[0]}). Check it now and answer the customer; don't ask them to wait."
+                self.rec.add("verify.progress", "stalled after the search; the model is sent back to answer or ask", "pending")
+                note = (
+                    f"Exactly one transaction matched ({box.matches[0]}). Check it now and answer the customer; don't ask them to wait."
+                    if len(box.matches) == 1
+                    else "Several transactions matched. Check the one that clearly fits what the customer said, or ask which one; don't ask them to wait."
+                )
                 messages.append({"role": "user", "content": [{"type": "text", "text": f"<system_check>{note}</system_check>"}]})
                 continue
 
