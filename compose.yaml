@@ -27,6 +27,8 @@ services:
       CQ_CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
       CQ_EVAL_RESULTS: /eval/results/latest.json
       CQ_SEED_ON_START: "1"
+      # Longer idle timeout for local work; production keeps the 15 minute default.
+      CQ_JWT_TTL_MINUTES: "60"
       CQ_AWS_REGION: ${AWS_REGION:-us-east-1}
       CQ_GUARDRAIL_ID: ${GUARDRAIL_ID:-}
       CQ_GUARDRAIL_VERSION: ${GUARDRAIL_VERSION:-DRAFT}
