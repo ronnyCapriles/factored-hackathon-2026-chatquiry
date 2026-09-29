@@ -20,7 +20,7 @@ export default async function OperationsPage() {
   await requireStaff("admin");
   const [ops, counts, t] = await Promise.all([api().getOperations(), api().conversationCounts(), getMessages()]);
   const m = t.operations;
-  const dash = (v: string | number | null) => (v === null ? "—" : v);
+  const dash = (v: string | number | null | undefined) => v ?? "—";
 
   const live = [
     { state: "ai_attending" as const, label: m.liveAi, value: counts.ai, href: "/app/conversations?f=ai" },

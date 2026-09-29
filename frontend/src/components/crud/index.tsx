@@ -134,7 +134,7 @@ function validate(fields: Field[], values: Values, t: Messages) {
   const errors: Record<string, string> = {};
   for (const f of fields) {
     const v = values[f.name];
-    const empty = v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
+    const empty = v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
     if (f.required && empty) errors[f.name] = t.common.required;
     if (f.type === "number" && !empty) {
       const n = Number(v);

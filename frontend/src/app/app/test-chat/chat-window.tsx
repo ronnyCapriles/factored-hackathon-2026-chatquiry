@@ -242,7 +242,7 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
                 {turn.signals.map((s) => (
                   <span key={s.name} className="tabular inline-flex h-6 items-center rounded-full border-[1.5px] border-linea bg-fondo px-2 text-[12px]">
                     {s.name}={s.value}
-                    {s.confidence !== undefined && <span className="ml-1 text-muted">({s.confidence.toFixed(2)})</span>}
+                    {typeof s.confidence === "number" && <span className="ml-1 text-muted">({s.confidence.toFixed(2)})</span>}
                   </span>
                 ))}
               </div>

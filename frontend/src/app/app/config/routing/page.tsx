@@ -78,7 +78,7 @@ export default async function RoutingPage() {
               <div key={s.name} className="flex flex-col gap-1 border-b border-linea-2 pb-3 last:border-0 last:pb-0">
                 <span className="flex items-center justify-between gap-3">
                   <span className="tabular text-[14px] font-bold">{s.name}</span>
-                  {s.threshold !== undefined ? <ThresholdBar value={s.threshold} /> : <span className="text-[12px] text-muted">{t.config.category}</span>}
+                  {typeof s.threshold === "number" ? <ThresholdBar value={s.threshold} /> : <span className="text-[12px] text-muted">{t.config.category}</span>}
                 </span>
                 <span className="text-[13px] text-tinta-3">{s.description}</span>
               </div>
@@ -100,7 +100,7 @@ export default async function RoutingPage() {
                   {e.signals.map((s) => (
                     <span key={s.name} className="tabular inline-flex h-7 items-center rounded-full border-[1.5px] border-linea bg-fondo px-2.5 text-[13px]">
                       {s.name} = {s.value}
-                      {s.confidence !== undefined && <span className="ml-1.5 text-muted">{fmt(m.confidence, { n: s.confidence.toFixed(2) })}</span>}
+                      {typeof s.confidence === "number" && <span className="ml-1.5 text-muted">{fmt(m.confidence, { n: s.confidence.toFixed(2) })}</span>}
                     </span>
                   ))}
                 </div>
