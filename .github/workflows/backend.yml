@@ -34,3 +34,9 @@ jobs:
       - run: uv run alembic upgrade head
       - run: uv run python -m app.seed
       - run: uv run pytest -q
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --target prod -t chatquiry-api:prod .
