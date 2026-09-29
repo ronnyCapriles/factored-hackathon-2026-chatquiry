@@ -249,7 +249,11 @@ class Orchestrator:
 
     async def _block(self, guard: GuardrailResult, rule: RoutingRule | None) -> None:
         guardrail = await self.session.scalar(self._ws(Guardrail))
-        if guard.blocked and guardrail:
+        if guard.secret:
+            self._ai(say("never_share_secrets", self.lang))
+        elif guard.blocked and guard.topics and not guard.attack:
+            self._ai(say("only_own_accounts" if "OtherCustomersData" in guard.topics else "outside_this_chat", self.lang))
+        elif guard.blocked and guardrail:
             self._ai(guardrail.spec["blocked_message"].get(self.lang) or guardrail.spec["blocked_message"]["es"])
         else:
             self._ai(say("only_own_accounts", self.lang))

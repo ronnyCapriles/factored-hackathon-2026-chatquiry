@@ -233,3 +233,21 @@ async def test_asking_for_a_person_skips_the_model(client, agent, world):
     use(llm)
     turn = await send(client, agent, "Quiero hablar con una persona")
     assert turn["inspection"]["rule"]["id"] == "R-04" and turn["handedOff"] and llm.calls == 0
+
+
+async def test_a_blocked_secret_is_never_stored(client, agent, world, monkeypatch):
+    from app.orchestrator import engine
+    from app.orchestrator.intake import REDACTED, GuardrailResult
+
+    async def guardrail_blocks_pin(text: str) -> GuardrailResult:
+        return GuardrailResult(True, True, REDACTED, ["PIN"], secret=True)
+
+    monkeypatch.setattr(engine, "check_guardrail", guardrail_blocks_pin)
+    llm = ScriptedLLM()
+    use(llm)
+    turn = await send(client, agent, "Mi PIN es 4821, ¿lo pueden cambiar?")
+    assert llm.calls == 0 and "nunca compartas tu PIN" in turn["replies"][0]["text"]
+    async with SessionLocal() as s:
+        stored = list(await s.scalars(select(Message.text).where(Message.conversation_id == turn["conversationId"])))
+        history = (await s.get(Conversation, turn["conversationId"])).agent_messages
+    assert REDACTED in stored and not any("4821" in t for t in stored) and "4821" not in json.dumps(history)

@@ -3,7 +3,7 @@
 import asyncio
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Protocol
 
@@ -137,12 +137,21 @@ def detect_confirmation(text: str) -> tuple[str, float]:
     return "unclear", 0.5
 
 
+# Secrets the customer should never type; a message carrying one is not stored anywhere.
+SECRET_TYPES = {"PIN", "PASSWORD", "CREDIT_DEBIT_CARD_CVV"}
+REDACTED = "[mensaje retenido: contenía un dato secreto]"
+
+
 @dataclass
 class GuardrailResult:
     configured: bool
     blocked: bool
     text: str
     findings: list[str]
+    secret: bool = False
+    # Denied topics are questions outside this chat; attacks are content or prompt-attack filters.
+    topics: list[str] = field(default_factory=list)
+    attack: bool = False
 
 
 @lru_cache
@@ -164,7 +173,12 @@ async def check_guardrail(text: str) -> GuardrailResult:
     )
     findings: list[str] = []
     blocked = False
+    secret = False
+    topics: list[str] = []
+    attack = False
     for assessment in response.get("assessments", []):
+        topics += [t["name"] for t in assessment.get("topicPolicy", {}).get("topics", []) if t.get("action") == "BLOCKED"]
+        attack = attack or any(f.get("action") == "BLOCKED" for f in assessment.get("contentPolicy", {}).get("filters", []))
         groups = [
             assessment.get("contentPolicy", {}).get("filters", []),
             assessment.get("topicPolicy", {}).get("topics", []),
@@ -174,11 +188,15 @@ async def check_guardrail(text: str) -> GuardrailResult:
         ]
         for group in groups:
             for item in group:
-                findings.append(item.get("type") or item.get("name") or item.get("match") or "finding")
+                # Topics carry their name; filters and PII carry their type.
+                findings.append(item.get("name") or item.get("type") or item.get("match") or "finding")
                 blocked = blocked or item.get("action") == "BLOCKED"
+                secret = secret or (item.get("type") in SECRET_TYPES and item.get("action") == "BLOCKED")
     outputs = response.get("outputs") or []
+    if secret:
+        return GuardrailResult(True, True, REDACTED, findings, secret=True)
     masked = outputs[0]["text"] if outputs and not blocked else text
-    return GuardrailResult(True, blocked, masked, findings)
+    return GuardrailResult(True, blocked, masked, findings, topics=topics, attack=attack)
 
 
 @lru_cache

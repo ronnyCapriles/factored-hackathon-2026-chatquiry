@@ -55,6 +55,16 @@ TEXTS: dict[str, dict[Locale, str]] = {
         "en": "All right, I won't open anything for now. If you change your mind, just tell me.",
         "pt": "Tudo bem, não vou abrir nada por enquanto. Se mudar de ideia, é só me dizer.",
     },
+    "outside_this_chat": {
+        "es": "Eso no lo puedo resolver por este chat. Puedes gestionarlo en la app del banco o en una sucursal, y si prefieres te comunico con una persona.",
+        "en": "I can't handle that in this chat. You can do it in the bank's app or at a branch, and if you prefer I can connect you with a person.",
+        "pt": "Isso eu não consigo resolver por este chat. Você pode fazer pelo app do banco ou numa agência, e se preferir te passo para uma pessoa.",
+    },
+    "never_share_secrets": {
+        "es": "Por tu seguridad, nunca compartas tu PIN, contraseña ni código de seguridad por este chat. Nadie del banco te los va a pedir. ¿En qué más te ayudo?",
+        "en": "For your security, never share your PIN, password or security code in this chat. No one at the bank will ask for them. How else can I help?",
+        "pt": "Para sua segurança, nunca compartilhe seu PIN, senha ou código de segurança por este chat. Ninguém do banco vai pedir isso. Posso ajudar em mais alguma coisa?",
+    },
     "technical_problem": {
         "es": "Perdona, tuve un problema para revisar eso y no quiero darte un dato equivocado.",
         "en": "Sorry, I had a problem checking that and I don't want to give you wrong information.",
