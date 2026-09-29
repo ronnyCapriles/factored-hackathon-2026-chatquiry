@@ -16,6 +16,8 @@ from app.orchestrator.trace import Recorder
 from app.services.audit import record
 
 MAX_RESULTS = 6
+MIN_DAYS = 7
+MAX_DAYS = 120
 CONFIRMATION_WINDOW = timedelta(minutes=30)
 
 
@@ -44,9 +46,12 @@ class ToolBox:
     handoff: HandoffRequest | None = None
     proposed: PendingAction | None = None
     matches: list[str] = field(default_factory=list)
+    searched: bool = False
 
     async def run(self, name: str, args: dict) -> dict:
         started = self.recorder.now()
+        # Any lookup counts, even one that fails: the model did go to the data.
+        self.searched = self.searched or name in ("find_transactions", "get_transaction", "policy_lookup")
         if name not in self.allowed:
             self.recorder.add(f"tool.{name}", "not in this profile's allowlist", "blocked", started)
             raise ToolError(f"Tool {name} is not available.")
@@ -105,24 +110,36 @@ class ToolBox:
     async def _find_transactions(
         self, days_back: int = 30, amount_approx: float | None = None, transaction_type: str | None = None, merchant: str | None = None
     ) -> dict:
-        days = max(1, min(int(days_back), 120))
-        stmt = select(Transaction).where(
-            Transaction.workspace_id == self.ctx.workspace_id,
-            Transaction.customer_id == self.customer.customer_id,
-            Transaction.transaction_date >= self.now - timedelta(days=days),
-            Transaction.transaction_date <= self.now,
-        )
-        if transaction_type:
-            stmt = stmt.where(Transaction.transaction_type == transaction_type)
-        if merchant:
-            stmt = stmt.where(Transaction.merchant_name.ilike(f"%{merchant.strip()[:60]}%"))
-        if amount_approx:
-            value = Decimal(str(amount_approx))
-            stmt = stmt.where(Transaction.amount.between(value * Decimal("0.8"), value * Decimal("1.2")))
-        rows = list(await self.session.scalars(stmt.order_by(Transaction.transaction_date.desc()).limit(MAX_RESULTS + 1)))
+        # "Yesterday" is often a few days ago, so a search never looks back less than a week.
+        days = max(MIN_DAYS, min(int(days_back), MAX_DAYS))
+
+        async def search(window: int) -> list[Transaction]:
+            stmt = select(Transaction).where(
+                Transaction.workspace_id == self.ctx.workspace_id,
+                Transaction.customer_id == self.customer.customer_id,
+                Transaction.transaction_date >= self.now - timedelta(days=window),
+                Transaction.transaction_date <= self.now,
+            )
+            if transaction_type:
+                stmt = stmt.where(Transaction.transaction_type == transaction_type)
+            if merchant:
+                stmt = stmt.where(Transaction.merchant_name.ilike(f"%{merchant.strip()[:60]}%"))
+            if amount_approx:
+                value = Decimal(str(amount_approx))
+                stmt = stmt.where(Transaction.amount.between(value * Decimal("0.8"), value * Decimal("1.2")))
+            return list(await self.session.scalars(stmt.order_by(Transaction.transaction_date.desc()).limit(MAX_RESULTS + 1)))
+
+        rows = await search(days)
+        widened = not rows and days < MAX_DAYS
+        if widened:
+            days = MAX_DAYS
+            rows = await search(days)
         items = [self._describe(t) for t in rows[:MAX_RESULTS]]
         self.matches = [t["transaction_id"] for t in items]
-        return {"matches": items, "more_available": len(rows) > MAX_RESULTS, "searched_days": days}
+        result = {"matches": items, "more_available": len(rows) > MAX_RESULTS, "searched_days": days}
+        if widened:
+            result["note"] = "Nothing in the window you asked for; these come from a wider search."
+        return result
 
     async def _get_transaction(self, transaction_id: str) -> dict:
         tx = await self._own_transaction(transaction_id)

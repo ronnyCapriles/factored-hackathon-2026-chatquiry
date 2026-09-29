@@ -25,6 +25,16 @@ TEXTS: dict[str, dict[Locale, str]] = {
         "en": "{agent} from the {department} team already has the full context and will continue with you here.",
         "pt": "{agent}, da equipe de {department}, já tem todo o contexto e continua com você por aqui.",
     },
+    "handoff_security": {
+        "es": "Para proteger la cuenta, esta conversación sigue con {agent}, del equipo de {department}. Ya tiene todo el contexto.",
+        "en": "To protect the account, this conversation continues with {agent} from the {department} team. They already have the full context.",
+        "pt": "Para proteger a conta, esta conversa continua com {agent}, da equipe de {department}. Já tem todo o contexto.",
+    },
+    "handoff_frustration": {
+        "es": "Lamento que esto te esté costando tanto. Te paso con {agent}, del equipo de {department}, que ya tiene todo el contexto y va a seguir contigo por aquí.",
+        "en": "I'm sorry this is taking so much of your time. I'm passing you to {agent} from the {department} team, who already has the full context and will continue with you here.",
+        "pt": "Sinto muito que isso esteja dando tanto trabalho. Vou passar você para {agent}, da equipe de {department}, que já tem todo o contexto e vai continuar com você por aqui.",
+    },
     "handoff_unassigned": {
         "es": "Una persona del equipo va a continuar contigo por aquí. Ya tiene todo el contexto.",
         "en": "A person from the team will continue with you here. They already have the full context.",

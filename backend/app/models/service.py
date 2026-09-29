@@ -23,6 +23,8 @@ class Conversation(Base, Tenant, Timestamps):
     tokens_out: Mapped[int] = mapped_column(Integer, default=0)
     cost_usd: Mapped[Decimal] = mapped_column(Numeric(10, 6), default=0)
     turns: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Running counts routing reads: security strikes, frustration, requests for a person.
+    flags: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     # The model's side of the conversation, tool calls included, replayed on every turn.
     agent_messages: Mapped[list[dict]] = mapped_column(JSON, default=list, server_default="[]")
 

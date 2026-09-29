@@ -19,6 +19,7 @@ from app.models import (
     Dispute,
     DisputeEvent,
     Guardrail,
+    IntakeSignal,
     Message,
     Organization,
     PendingAction,
@@ -31,10 +32,10 @@ from app.models import (
 from app.models.base import utcnow
 from app.orchestrator import grounding, prompts
 from app.orchestrator.handoff import hand_off
-from app.orchestrator.intake import GuardrailResult, IntakeClassifier, RulesClassifier, Signals, check_guardrail, detect_confirmation
+from app.orchestrator.intake import GuardrailResult, IntakeClassifier, RulesClassifier, Signals, check_guardrail, detect_confirmation, plain
 from app.orchestrator.llm import LLM, LLMReply, LLMUnavailable
 from app.orchestrator.policy import TRANSFER_POLICY
-from app.orchestrator.routing import DISPUTES, route
+from app.orchestrator.routing import COUNTERS, DISPUTES, Route, route
 from app.orchestrator.texts import money
 from app.orchestrator.texts import text as say
 from app.orchestrator.tools import ToolBox, ToolError
@@ -136,6 +137,7 @@ class Orchestrator:
         self.rule: RoutingRule | None = None
         self.events: list[str] = []
         self.remembered = False
+        self.new_intent: str | None = None
         self.customer_text = text
         self.usage = {"in": 0, "out": 0, "cost": 0.0}
 
@@ -162,7 +164,31 @@ class Orchestrator:
         self.rec.add("intake.classifier", f"{self.classifier.name} · {detail}", "classified", started, versions=[f"classifier {self.classifier.name}"])
         self.customer_text = guard.text
 
+        counters = await self._count(signals, guard)
+        rules = list(await self.session.scalars(self._ws(RoutingRule).where(RoutingRule.active)))
+        decision = route(rules, signals, counters=counters, guardrail_blocked=guard.blocked, current_department=conversation.department_id)
+        self.rule = decision.rule
+        target = self.departments.get(decision.department_id or "")
+        rule_label = f"{decision.rule.id} · " if decision.rule else ""
+        counts = " · ".join(f"{k}={v}" for k, v in counters.items() if v)
+        self.rec.add(
+            "router",
+            f"{rule_label}{decision.action}" + (f" → {localized(target.name, 'en')}" if target else "") + (f" · {counts}" if counts else ""),
+            "routed",
+            rule=decision.rule.id if decision.rule else None,
+        )
+
         pending = await self._pending_action()
+        # Security comes first: a blocked message or a takeover signal can never confirm an action.
+        if decision.action == "block" or (decision.action == "human" and decision.counter == "security_strikes"):
+            if pending:
+                pending.status = "superseded"
+            if decision.action == "block":
+                await self._block(guard, decision.rule)
+            else:
+                await self._escalate(decision, target, counters)
+            return await self._finish(signals.as_list())
+
         if pending:
             label, confidence = detect_confirmation(guard.text)
             self.rec.add(
@@ -170,33 +196,19 @@ class Orchestrator:
                 f"“{guard.text[:60]}” → {label} p={confidence:.2f} (deterministic detector, not the model)",
                 "verified" if label == "yes" else "ok",
             )
-            if label == "yes":
-                await self._open_dispute(pending)
-                return await self._finish(signals.as_list())
-            if label == "no":
-                pending.status = "declined"
-                self._ai(say("dispute_declined", self.lang))
-                self.conversation.state = "waiting_customer"
+            if label in ("yes", "no"):
+                if label == "yes":
+                    await self._open_dispute(pending)
+                else:
+                    pending.status = "declined"
+                    self._ai(say("dispute_declined", self.lang))
+                    self.conversation.state = "waiting_customer"
+                if decision.action == "human" and target and not self.handed_off:
+                    await self._escalate(decision, target, counters)
                 return await self._finish(signals.as_list())
 
-        rules = list(await self.session.scalars(self._ws(RoutingRule).where(RoutingRule.active)))
-        decision = route(rules, signals, turns=conversation.turns, guardrail_blocked=guard.blocked, current_department=conversation.department_id)
-        self.rule = decision.rule
-        target = self.departments.get(decision.department_id or "")
-        rule_label = f"{decision.rule.id} · " if decision.rule else ""
-        self.rec.add(
-            "router",
-            f"{rule_label}{decision.action}" + (f" → {localized(target.name, 'en')}" if target else ""),
-            "routed",
-            rule=decision.rule.id if decision.rule else None,
-        )
-
-        if decision.action == "block":
-            await self._block(guard, decision.rule)
-            return await self._finish(signals.as_list())
         if decision.action == "human" and target:
-            self._ai(say("handoff_request", self.lang))
-            await self._handoff(target, reason="El cliente pidió o necesita una persona", rule=decision.rule.id if decision.rule else "R-04", pending=[])
+            await self._escalate(decision, target, counters)
             return await self._finish(signals.as_list())
         if decision.action == "route" and target:
             conversation.department_id = target.id
@@ -208,8 +220,50 @@ class Orchestrator:
             return await self._finish(signals.as_list())
 
         new_intent = signals.intent if decision.action == "route" else None
-        await self._run_agent(signals, out_of_scope=decision.action == "abstain", pending=pending, new_intent=new_intent)
+        self.new_intent = new_intent
+        asked_for_person = signals.needs_human >= self.thresholds.get("needs_human", 0.62)
+        await self._run_agent(signals, out_of_scope=decision.action == "abstain", pending=pending, new_intent=new_intent, asked_for_person=asked_for_person)
         return await self._finish(signals.as_list())
+
+    async def _count(self, signals: Signals, guard: GuardrailResult) -> dict:
+        """Updates the conversation's running counts; one message alone rarely says enough."""
+        self.thresholds = {x.name: x.threshold for x in await self.session.scalars(self._ws(IntakeSignal)) if x.threshold is not None}
+        name = plain(first_name(self.customer))
+        says_not_holder = signals.identity_doubt or re.search(rf"\b(no soy|nao sou) {re.escape(name)}\b", plain(guard.text)) is not None
+        blocked_attack = guard.blocked and (guard.attack or "OtherCustomersData" in guard.topics)
+        attack = blocked_attack or signals.injection_risk >= self.thresholds.get("injection_risk", 0.8)
+        frustrated = signals.frustration >= self.thresholds.get("frustration", 0.7)
+        flags = dict(self.conversation.flags or {})
+        # Saying they are not the account holder counts double: it is enough on its own.
+        flags["security_strikes"] = flags.get("security_strikes", 0) + (2 if says_not_holder else 1 if attack else 0)
+        flags["frustration_hits"] = flags.get("frustration_hits", 0) + (2 if signals.frustration >= 0.9 else 1 if frustrated else 0)
+        flags["human_requests"] = flags.get("human_requests", 0) + (1 if signals.needs_human >= self.thresholds.get("needs_human", 0.62) else 0)
+        if says_not_holder:
+            flags["not_holder"] = True
+        self.conversation.flags = flags
+        return {k: flags[k] for k in COUNTERS}
+
+    async def _escalate(self, decision: Route, target: Department, counters: dict) -> None:
+        """A handoff decided by routing, worded for what triggered it."""
+        rule = decision.rule.id if decision.rule else "routing"
+        if decision.counter == "security_strikes":
+            not_holder = (self.conversation.flags or {}).get("not_holder")
+            reason = (
+                "Posible suplantación: dijo no ser el titular" if not_holder else "Intentos repetidos de acceder a datos ajenos o de manipular al asistente"
+            )
+            await self._handoff(
+                target,
+                reason=reason,
+                rule=rule,
+                facts=[{"label": f"{counters['security_strikes']} alertas de seguridad en la conversación", "source": "intake"}],
+                pending=["Verificar la identidad del cliente por un canal seguro antes de dar cualquier dato"],
+                template="handoff_security",
+            )
+        elif decision.counter == "frustration_hits":
+            await self._handoff(target, reason="Cliente molesto; la IA no logró resolverlo", rule=rule, pending=[], template="handoff_frustration")
+        else:
+            self._ai(say("handoff_request", self.lang))
+            await self._handoff(target, reason="El cliente pidió hablar con una persona", rule=rule, pending=[])
 
     def _customer_name(self) -> str:
         return f"{self.customer.first_name} {self.customer.last_name}"
@@ -406,7 +460,9 @@ class Orchestrator:
         )
         dispute.owner_id = self.conversation.assigned_to
 
-    async def _run_agent(self, signals: Signals, *, out_of_scope: bool, pending: PendingAction | None, new_intent: str | None) -> None:
+    async def _run_agent(
+        self, signals: Signals, *, out_of_scope: bool, pending: PendingAction | None, new_intent: str | None, asked_for_person: bool = False
+    ) -> None:
         tools = list(await self.session.scalars(self._ws(Tool).where(Tool.name.in_(self.profile.tools))))
         org = await self.session.get(Organization, self.ctx.org_id)
         system = prompts.system_prompt(self.profile, org.name if org else "", self.settings.data_as_of)
@@ -422,7 +478,7 @@ class Orchestrator:
             allowed=set(self.profile.tools),
             ai_name=self.profile.name,
         )
-        messages = [*self.conversation.agent_messages, self._user_message(out_of_scope, note, department, new_intent)]
+        messages = [*self.conversation.agent_messages, self._user_message(out_of_scope, note, department, new_intent, asked_for_person)]
 
         started = self.rec.now()
         try:
@@ -463,9 +519,11 @@ class Orchestrator:
         else:
             self.conversation.state = "resolved" if signals.closing else "waiting_customer"
 
-    def _user_message(self, out_of_scope: bool, note: str | None, department: Department | None, new_intent: str | None = None) -> dict:
+    def _user_message(
+        self, out_of_scope: bool, note: str | None, department: Department | None, new_intent: str | None = None, asked_for_person: bool = False
+    ) -> dict:
         blocks = [
-            {"type": "text", "text": prompts.turn_context(self.lang, department, out_of_scope, note, new_intent)},
+            {"type": "text", "text": prompts.turn_context(self.lang, department, out_of_scope, note, new_intent, asked_for_person)},
             {"type": "text", "text": prompts.customer_text(self.customer_text)},
         ]
         return {"role": "user", "content": blocks}
@@ -519,6 +577,13 @@ class Orchestrator:
             if reply.stop_reason == "refusal" or not reply.text:
                 self.rec.add("verify.grounding", f"no usable reply (stop reason {reply.stop_reason})", "blocked")
                 return None
+            # A new inquiry answered with questions the data could have answered.
+            if not nudged and self.new_intent in prompts.SEARCH_FIRST and not box.searched and not box.decisions:
+                nudged = True
+                self.rec.add("verify.progress", "asked the customer before searching; the model is sent back to search first", "pending")
+                note = "Search the customer's recent transactions with find_transactions before asking them anything, then answer."
+                messages.append({"role": "user", "content": [{"type": "text", "text": f"<system_check>{note}</system_check>"}]})
+                continue
             # A reply that neither answers nor asks, right after finding transactions, is a stall.
             if not nudged and box.matches and not box.decisions and not box.proposed and "?" not in reply.text:
                 nudged = True
@@ -597,6 +662,7 @@ class Orchestrator:
 def _plain_text(reply: str) -> str:
     """Chat bubbles show text as typed, so markdown emphasis and bullets would appear as symbols."""
     text = re.sub(r"(\*\*|__|\*|`)(.+?)\1", r"\2", reply)
+    text = re.sub(r"(?<!\.)\.\.(?!\.)", ".", text)
     return re.sub(r"(?m)^\s*[-•]\s+", "", text)
 
 
