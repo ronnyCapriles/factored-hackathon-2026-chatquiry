@@ -1,4 +1,5 @@
-# Local development. Production compose lives in infra/.
+# Local development: Postgres and the API with hot reload. The frontend runs outside with npm run dev.
+# Production compose lives in infra/.
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -13,6 +14,36 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U chatquiry"]
       interval: 3s
+      retries: 20
+
+  api:
+    build:
+      context: ./backend
+      target: dev
+    image: chatquiry-api:dev
+    environment:
+      CQ_ENV: dev
+      CQ_DATABASE_URL: postgresql+asyncpg://chatquiry:chatquiry@db:5432/chatquiry
+      CQ_CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+      CQ_EVAL_RESULTS: /eval/results/latest.json
+      CQ_SEED_ON_START: "1"
+      CQ_AWS_REGION: ${AWS_REGION:-us-east-1}
+      # Bedrock uses your local AWS CLI profile; set AWS_PROFILE in the root .env.
+      AWS_PROFILE: ${AWS_PROFILE:-default}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+    ports:
+      - "127.0.0.1:8010:8000"
+    volumes:
+      - ./backend:/app
+      - ./eval:/eval:ro
+      # Read-write so SSO sessions can refresh their cached token.
+      - ${HOME}/.aws:/home/app/.aws
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 5s
       retries: 20
 
 volumes:
