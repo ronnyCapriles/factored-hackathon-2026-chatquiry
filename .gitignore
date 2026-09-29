@@ -20,6 +20,9 @@ node_modules/
 # terraform
 .terraform/
 *.tfstate*
+# Saved plans can hold sensitive values.
+tfplan
+*.tfplan
 *.tfvars
 # Environment values only; secrets go to SSM, never here.
 !infra/prod/**/terraform.tfvars
