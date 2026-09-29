@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { cookieOptions, needsRenewal, renewSession } from "@/lib/session-refresh";
 import { ADMIN_PREFIXES, STAFF_COOKIE, verifyToken } from "@/lib/session-token";
 
 /** Rejects before rendering so a wrong role gets a real 403. Pages still call requireStaff(). */
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const session = verifyToken(request.cookies.get(STAFF_COOKIE)?.value);
   const { pathname } = request.nextUrl;
 
@@ -15,7 +16,12 @@ export function proxy(request: NextRequest) {
   if (session.user.role !== "admin" && ADMIN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return NextResponse.rewrite(new URL("/denied", request.url), { status: 403 });
   }
-  return NextResponse.next();
+  const response = NextResponse.next();
+  if (needsRenewal(session)) {
+    const renewed = await renewSession(session);
+    if (renewed) response.cookies.set(STAFF_COOKIE, renewed.value, cookieOptions(renewed.exp));
+  }
+  return response;
 }
 
 export const config = {

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { forbidden, redirect } from "next/navigation";
 import { cache } from "react";
 import type { Role, StaffUser } from "./api/types";
+import { cookieOptions } from "./session-refresh";
 import { STAFF_COOKIE, signToken, verifyToken } from "./session-token";
 
 export { STAFF_COOKIE };
@@ -10,16 +11,11 @@ export { STAFF_COOKIE };
 /**
  * Signed httpOnly cookie. The payload carries the backend token for server-side calls,
  * and it expires with that token so a page never holds a cookie the API already rejects.
+ * The proxy and the chat route renew both while the person is active.
  */
 export async function createStaffSession(user: StaffUser, token: string, expiresAt: string) {
   const exp = Date.parse(expiresAt);
-  (await cookies()).set(STAFF_COOKIE, signToken({ user, token, exp }), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    expires: new Date(exp),
-  });
+  (await cookies()).set(STAFF_COOKIE, signToken({ user, token, exp }), cookieOptions(exp));
 }
 
 export async function destroyStaffSession() {

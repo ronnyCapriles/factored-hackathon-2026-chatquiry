@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { api } from "@/lib/api";
-import { getStaffSession } from "@/lib/session";
+import { STAFF_COOKIE, getStaffSession } from "@/lib/session";
+import { cookieOptions, needsRenewal, renewSession } from "@/lib/session-refresh";
 
 /** Staff only; the customer id must belong to a demo customer. */
 export async function POST(request: Request) {
@@ -17,5 +18,11 @@ export async function POST(request: Request) {
   }
 
   const result = await api().testChatTurn(body!.customerId!, body?.conversationId ?? null, text);
-  return NextResponse.json(result);
+  const response = NextResponse.json(result);
+  // Chatting never loads a page, so the proxy would not see the activity.
+  if (needsRenewal(session)) {
+    const renewed = await renewSession(session);
+    if (renewed) response.cookies.set(STAFF_COOKIE, renewed.value, cookieOptions(renewed.exp));
+  }
+  return response;
 }
