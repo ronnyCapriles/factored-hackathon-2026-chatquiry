@@ -114,6 +114,8 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
           setTyping(null);
           await sleep(900);
           setMessages((m) => [...m, reply]);
+          // The system line announces the person who takes over; the header follows it.
+          if (data.handedOff) setAgent({ name: data.inspection.profile, initial: data.inspection.profile[0] ?? "?", human: true });
           continue;
         }
         if (reply.author === "human") setAgent({ name: reply.authorName, initial: reply.authorName[0], human: true });
