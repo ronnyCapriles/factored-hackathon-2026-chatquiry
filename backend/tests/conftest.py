@@ -3,7 +3,14 @@ from collections.abc import AsyncIterator
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.core.config import get_settings
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def no_cloud_guardrail(monkeypatch):
+    # Tests never reach AWS; the guardrail path is covered by faking check_guardrail.
+    monkeypatch.setattr(get_settings(), "guardrail_id", None)
 
 
 @pytest.fixture(scope="session")
