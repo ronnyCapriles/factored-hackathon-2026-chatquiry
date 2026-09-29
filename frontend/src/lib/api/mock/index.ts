@@ -89,7 +89,7 @@ export const mockApi: ChatquiryApi = {
           : []),
       ],
       rules: conv.handoff ? [conv.handoff.policyRule] : [],
-      versions: ["modelo claude-sonnet-5", "prompt lia@v0.3"],
+      versions: ["modelo claude-sonnet-5-5", "prompt lia@v0.3"],
     };
   },
 
