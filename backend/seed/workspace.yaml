@@ -81,30 +81,6 @@ profiles:
     max_turns: 12
     budget_usd: 0.05
     tools: [find_transactions, get_transaction, policy_lookup, propose_dispute, handoff_to_human]
-  - id: PRF-NICO
-    name: Nico
-    initials: N
-    status: draft
-    persona:
-      es: Directo y tranquilo. Pensado para bloqueos y reposición de tarjetas.
-      en: Direct and calm. Designed for card blocks and replacements.
-      pt: Direto e tranquilo. Pensado para bloqueios e reposição de cartões.
-    sample_greeting:
-      es: Hola, soy Nico, de Banco LATAM. ¿Qué pasó con tu tarjeta?
-      pt: Olá, sou o Nico, do Banco LATAM. O que aconteceu com o seu cartão?
-    languages: [es, pt]
-    model: nova-2-lite
-    fallback_model: mistral-large-3
-    prompt_version: nico@v0.1-draft
-    prompt_history:
-      - { version: nico@v0.1-draft, date: "2026-09-28", current: true, note: { es: Borrador, en: Draft, pt: Rascunho } }
-    guardrail: gr-chatquiry v2
-    handoff_triggers:
-      - { es: Bloqueo de tarjeta (solo humano), en: Card block (human only), pt: Bloqueio de cartão (somente humano) }
-    max_turns: 8
-    budget_usd: 0.02
-    agent_suggestions: false
-    tools: [policy_lookup, handoff_to_human]
 
 departments:
   - id: DEP-INTAKE
