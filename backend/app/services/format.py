@@ -1,5 +1,7 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
+from app.core.config import get_settings
 from app.core.context import Locale
 
 
@@ -24,7 +26,11 @@ def mask_phone(value: str | None) -> str:
 
 
 def hhmm(value: datetime | None) -> str:
-    return value.strftime("%H:%M") if value else ""
+    if not value:
+        return ""
+    if value.tzinfo:
+        value = value.astimezone(ZoneInfo(get_settings().display_timezone))
+    return value.strftime("%H:%M")
 
 
 _MONTHS = {
