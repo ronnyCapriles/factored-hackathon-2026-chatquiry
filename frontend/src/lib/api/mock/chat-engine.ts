@@ -111,7 +111,7 @@ export function chatTurn(customerId: string, conversationId: string | null, text
   rec.add("intake.guardrail", injection ? "Bedrock Guardrails · posible ataque de prompt" : "Bedrock Guardrails · sin hallazgos", injection ? "blocked" : "allowed", 130 + (input.length % 40));
   rec.add("intake.laya", signals.map((x) => `${x.name}=${x.value}${x.confidence ? ` (${x.confidence})` : ""}`).join(" · "), "classified", 45);
 
-  const llm = (tokensIn: number, tokensOut: number) => rec.add("llm.claude-sonnet-5-5", `${tokensIn.toLocaleString("es")} tokens entrada · ${tokensOut} salida`, "ok", 900 + tokensOut * 4);
+  const llm = (tokensIn: number, tokensOut: number) => rec.add("llm.mistral-large-3", `${tokensIn.toLocaleString("es")} tokens entrada · ${tokensOut} salida`, "ok", 900 + tokensOut * 4);
 
   if (s.stage === "handed_off") {
     rec.add("router", "Conversación con persona · la IA no responde", "routed", 2);
