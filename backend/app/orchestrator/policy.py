@@ -68,7 +68,8 @@ def transaction_status(values: dict, tx: Transaction, customer: Customer, now: d
             TRANSFER_POLICY,
             "pending_overdue",
             True,
-            f"The {hours} h window ended at {_fmt(deadline)}. A person from the transfers team must follow up; hand off after a short explanation.",
+            f"It should have been credited by {_fmt(deadline)} and was not. Your reply tells the customer exactly that, with the date and time; "
+            "a person from the transfers team takes over right after it.",
             params,
         )
     if status == "Pending":

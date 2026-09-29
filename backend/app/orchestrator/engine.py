@@ -1,6 +1,7 @@
 """One customer turn: intake, routing, the agent with scoped tools, verification, then a reply or a handoff."""
 
 import json
+import re
 import secrets
 from dataclasses import dataclass
 from decimal import Decimal
@@ -22,6 +23,7 @@ from app.models import (
     Organization,
     PendingAction,
     RoutingRule,
+    StaffUser,
     Tool,
     TraceEvent,
     Transaction,
@@ -144,6 +146,8 @@ class Orchestrator:
         conversation.turns += 1
 
         if conversation.state in ("needs_human", "with_human"):
+            owner = await self.session.get(StaffUser, conversation.assigned_to) if conversation.assigned_to else None
+            self.responder = owner.name if owner else self.responder
             self._store(conversation, "customer", self._customer_name(), text)
             self.rec.add("router", "a person owns this conversation; the AI stays silent", "routed")
             return await self._finish([])
@@ -203,7 +207,8 @@ class Orchestrator:
             await self._handoff(self._current_department(), reason="Límite de turnos o de presupuesto de la IA", rule="profile.limits", pending=[])
             return await self._finish(signals.as_list())
 
-        await self._run_agent(signals, out_of_scope=decision.action == "abstain", pending=pending)
+        new_intent = signals.intent if decision.action == "route" else None
+        await self._run_agent(signals, out_of_scope=decision.action == "abstain", pending=pending, new_intent=new_intent)
         return await self._finish(signals.as_list())
 
     def _customer_name(self) -> str:
@@ -397,7 +402,7 @@ class Orchestrator:
         )
         dispute.owner_id = self.conversation.assigned_to
 
-    async def _run_agent(self, signals: Signals, *, out_of_scope: bool, pending: PendingAction | None) -> None:
+    async def _run_agent(self, signals: Signals, *, out_of_scope: bool, pending: PendingAction | None, new_intent: str | None) -> None:
         tools = list(await self.session.scalars(self._ws(Tool).where(Tool.name.in_(self.profile.tools))))
         org = await self.session.get(Organization, self.ctx.org_id)
         system = prompts.system_prompt(self.profile, org.name if org else "", self.settings.data_as_of)
@@ -413,7 +418,7 @@ class Orchestrator:
             allowed=set(self.profile.tools),
             ai_name=self.profile.name,
         )
-        messages = [*self.conversation.agent_messages, self._user_message(out_of_scope, note, department)]
+        messages = [*self.conversation.agent_messages, self._user_message(out_of_scope, note, department, new_intent)]
 
         started = self.rec.now()
         try:
@@ -430,7 +435,7 @@ class Orchestrator:
 
         self.conversation.agent_messages = messages
         self.remembered = True
-        for bubble in [b.strip() for b in reply.split("\n\n") if b.strip()][:3]:
+        for bubble in [b.strip() for b in _plain_text(reply).split("\n\n") if b.strip()][:3]:
             self._ai(bubble)
 
         forced = next((d for d in box.decisions if d.human_now), None)
@@ -446,15 +451,17 @@ class Orchestrator:
                 facts=facts,
                 pending=box.handoff.pending if box.handoff else [],
                 suggestion="transfer" if forced and forced.policy == TRANSFER_POLICY else "general",
+                # The model has just explained why, and often says a person is coming.
+                template="handoff_after_reply",
             )
         elif box.proposed:
             self.conversation.state = "waiting_customer"
         else:
             self.conversation.state = "resolved" if signals.closing else "waiting_customer"
 
-    def _user_message(self, out_of_scope: bool, note: str | None, department: Department | None) -> dict:
+    def _user_message(self, out_of_scope: bool, note: str | None, department: Department | None, new_intent: str | None = None) -> dict:
         blocks = [
-            {"type": "text", "text": prompts.turn_context(self.lang, department, out_of_scope, note)},
+            {"type": "text", "text": prompts.turn_context(self.lang, department, out_of_scope, note, new_intent)},
             {"type": "text", "text": prompts.customer_text(self.customer_text)},
         ]
         return {"role": "user", "content": blocks}
@@ -491,6 +498,7 @@ class Orchestrator:
 
     async def _agent_loop(self, system: str, tools: list[dict], messages: list[dict], box: ToolBox) -> str | None:
         rechecked = False
+        nudged = False
         for _ in range(MAX_MODEL_CALLS):
             reply = await self._call(system, tools, messages)
             messages.append({"role": "assistant", "content": reply.content})
@@ -507,6 +515,13 @@ class Orchestrator:
             if reply.stop_reason == "refusal" or not reply.text:
                 self.rec.add("verify.grounding", f"no usable reply (stop reason {reply.stop_reason})", "blocked")
                 return None
+            # A reply that neither answers nor asks, right after finding the one transaction, is a stall.
+            if not nudged and len(box.matches) == 1 and not box.decisions and not box.proposed and "?" not in reply.text:
+                nudged = True
+                self.rec.add("verify.progress", "stalled after a single match; the model is sent back to check it", "pending")
+                note = f"Exactly one transaction matched ({box.matches[0]}). Check it now and answer the customer; don't ask them to wait."
+                messages.append({"role": "user", "content": [{"type": "text", "text": f"<system_check>{note}</system_check>"}]})
+                continue
 
             started = self.rec.now()
             problems = grounding.ungrounded(reply.text, _sources(messages))
@@ -569,6 +584,12 @@ class Orchestrator:
             total_ms=self.rec.total_ms,
             customer_text=self.customer_text,
         )
+
+
+def _plain_text(reply: str) -> str:
+    """Chat bubbles show text as typed, so markdown emphasis and bullets would appear as symbols."""
+    text = re.sub(r"(\*\*|__|\*|`)(.+?)\1", r"\2", reply)
+    return re.sub(r"(?m)^\s*[-•]\s+", "", text)
 
 
 def _sources(messages: list[dict]) -> list[str]:

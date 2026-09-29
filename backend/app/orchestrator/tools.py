@@ -43,6 +43,7 @@ class ToolBox:
     facts: list[dict] = field(default_factory=list)
     handoff: HandoffRequest | None = None
     proposed: PendingAction | None = None
+    matches: list[str] = field(default_factory=list)
 
     async def run(self, name: str, args: dict) -> dict:
         started = self.recorder.now()
@@ -120,6 +121,7 @@ class ToolBox:
             stmt = stmt.where(Transaction.amount.between(value * Decimal("0.8"), value * Decimal("1.2")))
         rows = list(await self.session.scalars(stmt.order_by(Transaction.transaction_date.desc()).limit(MAX_RESULTS + 1)))
         items = [self._describe(t) for t in rows[:MAX_RESULTS]]
+        self.matches = [t["transaction_id"] for t in items]
         return {"matches": items, "more_available": len(rows) > MAX_RESULTS, "searched_days": days}
 
     async def _get_transaction(self, transaction_id: str) -> dict:

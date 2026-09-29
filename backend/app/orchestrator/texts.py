@@ -20,6 +20,11 @@ TEXTS: dict[str, dict[Locale, str]] = {
         "en": "Since this may be fraud, I'm passing you to {agent} from the {department} team. They already have the full context.",
         "pt": "Como pode ser fraude, vou passar você para {agent}, da equipe de {department}. Já tem todo o contexto, você não vai precisar repetir nada.",
     },
+    "handoff_after_reply": {
+        "es": "{agent}, del equipo de {department}, ya tiene todo el contexto y sigue contigo por aquí.",
+        "en": "{agent} from the {department} team already has the full context and will continue with you here.",
+        "pt": "{agent}, da equipe de {department}, já tem todo o contexto e continua com você por aqui.",
+    },
     "handoff_unassigned": {
         "es": "Una persona del equipo va a continuar contigo por aquí. Ya tiene todo el contexto.",
         "en": "A person from the team will continue with you here. They already have the full context.",
