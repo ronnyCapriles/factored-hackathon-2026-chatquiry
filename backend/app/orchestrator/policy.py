@@ -46,7 +46,14 @@ def _fmt(at: datetime) -> str:
 
 def transaction_status(values: dict, tx: Transaction, customer: Customer, now: datetime) -> Decision:
     status = tx.transaction_status
-    base = {"transaction_id": tx.transaction_id, "status": status, "made_at": _fmt(tx.transaction_date)}
+    base = {
+        "transaction_id": tx.transaction_id,
+        "type": tx.transaction_type,
+        "amount": f"{tx.amount:.2f}",
+        "currency": tx.currency,
+        "status": status,
+        "made_at": _fmt(tx.transaction_date),
+    }
 
     if status == "Pending" and tx.transaction_type == "Transfer":
         international = bool(tx.transaction_country) and _plain(tx.transaction_country) != _plain(customer.country)
@@ -84,7 +91,15 @@ def transaction_status(values: dict, tx: Transaction, customer: Customer, now: d
             {**base, "response_code": tx.response_code},
         )
     if status == "Reversed":
-        return Decision(TRANSFER_POLICY, "reversed", False, "It was reversed: the money went back to the account.", base)
+        reason = DECLINE_REASONS.get(tx.response_code or "")
+        why = f" The bank's reason: {reason}." if reason else " The data gives no reason, so don't suggest one."
+        # A reversed deposit never reached the balance; a reversed charge came back to it.
+        effect = (
+            "The deposit was reversed, so it was not credited: the money did not stay in the account."
+            if tx.transaction_type == "Deposit"
+            else "The charge was reversed, so the money went back to the account."
+        )
+        return Decision(TRANSFER_POLICY, "reversed", False, effect + why, {**base, "response_code": tx.response_code})
     return Decision(TRANSFER_POLICY, "approved", False, "It was approved and completed.", base)
 
 
