@@ -31,6 +31,8 @@ services:
       CQ_JWT_TTL_MINUTES: "60"
       CQ_AWS_REGION: ${AWS_REGION:-us-east-1}
       CQ_GUARDRAIL_ID: ${GUARDRAIL_ID:-}
+      # Without a key the intake falls back to the keyword rules.
+      CQ_TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
       CQ_GUARDRAIL_VERSION: ${GUARDRAIL_VERSION:-DRAFT}
       # Bedrock uses your local AWS CLI profile; set AWS_PROFILE in the root .env.
       AWS_PROFILE: ${AWS_PROFILE:-default}
