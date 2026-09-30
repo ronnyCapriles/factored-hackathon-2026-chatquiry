@@ -25,7 +25,7 @@ What the hackathon submission (deadline Sun 2026-10-04) delivers, and what comes
 - Toasts, modals, loading skeletons, and 404, 403 and error pages.
 
 ### Backend, data and ML (Phase 3 onward)
-- FastAPI orchestrator: intake (Bedrock Guardrails plus an intake classifier: keyword rules today, a model trained on the call transcripts next), deterministic routing, Mistral Large 3 through the Bedrock Converse API with allow-listed tools, a policy engine, a grounding check, and handoff packets.
+- FastAPI orchestrator: intake (Bedrock Guardrails plus the Jev decision model from TypeSafe, with keyword rules as fallback), deterministic routing, Mistral Large 3 through the Bedrock Converse API with allow-listed tools, a policy engine, a grounding check, and handoff packets.
 - Postgres with `org_id` and `workspace_id` on every table, a single workspace, per-customer scoping in the tool layer, and an append-only audit log.
 - Data pipeline (bronze → silver → gold) with contracts, quality reports, a late-arrival and dedup fixture, and a serving subset.
 - Intake classifier evaluated against baselines on a leakage-safe split.

@@ -11,6 +11,7 @@ A walkthrough to run the app on your machine and try every flow that works today
 | Frontend (Next.js) | your terminal, `npm run dev` | localhost:3000 |
 | Model | Mistral Large 3 on Amazon Bedrock, through your AWS profile `ronny` | |
 | Guardrail | Bedrock Guardrails `chatquiry-prod`, version 2 | |
+| Intake classifier | Jev (TypeSafe), with the keyword rules `rules-v1` as fallback | |
 
 The frontend never calls AWS; only the API does, using `~/.aws` mounted into its container.
 
@@ -26,7 +27,10 @@ AWS_PROFILE=ronny
 AWS_REGION=us-east-1
 GUARDRAIL_ID=x0cltey3fh7q
 GUARDRAIL_VERSION=2
+TYPESAFE_API_KEY=<your TypeSafe key>
 ```
+
+Without `TYPESAFE_API_KEY` everything still works; the intake uses the keyword rules instead of Jev.
 
 `./frontend/.env.local`
 ```
@@ -91,7 +95,7 @@ Steps you will see in the inspector:
 | Step | Meaning |
 |---|---|
 | `intake.guardrail` | Bedrock Guardrails checked the message: `permitido`, `bloqueado`, or masked personal data |
-| `intake.classifier` | `rules-v1` read language, intent, injection risk, need for a person and frustration |
+| `intake.classifier` | Jev (for example `jev-1.13.0`) answered the intake questions: language, intent, manipulation, not the holder, wants a person, frustration. `rules-v1 (fallback: …)` means Jev failed and the keyword rules answered |
 | `confirm.detect` | A pending action was waiting; a fixed-rule detector read the customer's yes or no. The model is not asked |
 | `router` | Which routing rule matched, where the conversation goes, and the running counts (`security_strikes`, `frustration_hits`, `human_requests`) |
 | `llm.mistral-large-3-675b-instruct` | One call to the model, with tokens and cost |
@@ -306,25 +310,37 @@ customer message
 
 Code: `backend/app/orchestrator/` (`engine.py` ties it together; `intake.py`, `routing.py`, `policy.py`, `tools.py`, `grounding.py`, `handoff.py`, `llm.py`, `prompts.py`, `texts.py`).
 
-## 12. About Laya
+## 12. The intake classifier: Jev
 
-**Laya is not set up.** Running the containers does not download or start it, and nothing in the live path calls it. It appears only in the frontend's mock data.
+The intake uses **Jev**, TypeSafe's decision model. It does not generate text: it answers typed questions with calibrated probabilities, in one call of well under a second. The code is `backend/app/orchestrator/jev.py`.
 
-What it was meant to be: a small self-hosted multilingual classifier, running on CPU inside the API container, answering typed questions about each message (intent, injection risk, needs a person, language). The plan listed it as a risk because its package and CPU/ARM support were never verified. After Bedrock refused Anthropic's models for the account, it stayed on hold.
+What it receives: only the customer's message, after the guardrail has masked personal data, and the assistant's previous message so a short answer like "sí, esa" is read in context. No customer data, account data or history leaves.
 
-What runs today in its place:
+The questions it answers for every message:
 
-- **`rules-v1`** (`backend/app/orchestrator/intake.py`): Spanish and Portuguese keyword patterns that produce the same signals the routing rules read: `language`, `intent` with a confidence, `injection_risk`, `needs_human`, `frustration`.
-- **The Bedrock guardrail** does the heavy lifting on attacks with a real model (Standard tier covers Spanish and Portuguese), so injection detection does not rely on keywords alone.
+| Question | Type | Becomes |
+|---|---|---|
+| `language` | choice: es · pt · other | `language` |
+| `intent` | choice: txn_status · txn_dispute · card · credit · other | `intent` and its confidence |
+| `manipulation` | yes/no probability | `injection_risk` |
+| `not_holder` | yes/no probability | `identity_doubt` (at 0.5 or more) |
+| `wants_person` | yes/no probability | `needs_human` |
+| `frustrated`, `furious` | yes/no probabilities | `frustration` (furious counts double) |
+| `closing` | yes/no probability | closes the conversation as resolved |
 
-How a real classifier plugs in: anything with `classify(text, current_language) -> Signals` can replace `rules-v1` in `get_classifier()`. Routing, traces (`intake.classifier · <name>`) and the configuration page pick up the new name without other changes.
+The thresholds in **Configuración → Enrutamiento** (manipulation 0.80, wants a person 0.62, frustration 0.70) are now applied to real probabilities.
 
-The plan for it is the ML step: train on the call transcripts the pipeline already prepared (`data/gold/ml_intent_dataset.parquet`, labels from each call's reason category), compare keyword rules against TF-IDF with logistic regression and against embeddings, pick by macro-F1 and by recall on "needs a person", and ship the winner behind the same interface. Laya can be one of the candidates if its weights can be obtained and run on the server's CPU.
+Two safety nets:
+
+- The keyword rules still run on every message, and for manipulation and "not the holder" the higher of the two wins, so known attack phrasings are caught even if the model misses them.
+- If Jev fails (network, rate limit, overload after one retry, a malformed answer), that message falls back to the keyword rules and the trace says `rules-v1 (fallback: …)`. The chat never stops because of the classifier.
+
+Laya, which the original plan had in this slot, was never set up; Jev replaces it.
 
 ## 13. Automated checks
 
 ```
-docker compose exec api pytest -q                      # 27 backend tests, offline (a scripted model stands in for Mistral)
+docker compose exec api pytest -q                      # 32 backend tests, offline (Jev is tested against a fake server) (a scripted model stands in for Mistral)
 cd backend && uv run ruff check app tests
 cd frontend && npm run lint && npm run typecheck && npm run check:i18n
 cd pipeline && uv run pytest -q
@@ -337,6 +353,7 @@ cd pipeline && uv run pytest -q
 | Every reply is *"Perdona, tuve un problema para revisar eso…"* and the conversation goes to a person; the trace shows `llm… model unavailable` or `intake.guardrail unavailable` | The AWS SSO session expired. Run `aws sso login --profile ronny`, then `docker compose restart api`. |
 | The page shows an error mentioning "Chatquiry API unreachable" | The API is down. `docker compose ps`, then `docker compose logs api`. |
 | Sent back to sign-in with "Tu sesión expiró" | More than 60 minutes without activity, or more than 12 hours since you signed in. Sign in again. |
+| The trace always shows `rules-v1 (fallback: HTTPStatusError)` | TypeSafe rejected the key (401) or is rate limiting. Check `TYPESAFE_API_KEY` in `.env`, then `docker compose up -d api`. `docker compose logs api` shows the reason. |
 | The browser shows "A tree hydrated but some attributes… didn't match", mentioning `data-sharkid` | A browser extension (an autofill or form tool) edits the page before React loads. It is not the app. Test in a private window without extensions, or disable that extension for localhost. |
 | **Chat de prueba** says there are no test customers | The demo data is not loaded (for example after deleting the Docker volume). Put the dataset in `data/bronze`, then `cd pipeline && uv run cq-pipeline all --mode full`. |
 | S3 answers that the purchase already has a dispute | Run `docker compose exec api python -m app.reset`. |
