@@ -6,13 +6,13 @@ import { StateBubble } from "@/components/brand/sign";
 import { Label } from "@/components/ui";
 import { useLocale, useMessages } from "@/i18n/client";
 import { LOCALE_HEADER, fmt } from "@/i18n/config";
-import type { ChatTurnResponse, Language, Message, TraceStatus, TurnInspection } from "@/lib/api/types";
+import type { ChatTurnResponse, ConversationUpdates, Language, Message, TraceStatus, TurnInspection } from "@/lib/api/types";
 
 // Customer-facing copy follows the customer's language, not the staff UI language.
 const COPY = {
   es: {
     online: "Banco LATAM · en línea",
-    security: "Banco LATAM · seguridad",
+    team: "Banco LATAM · equipo de atención",
     notice: "{ai} es la asistente virtual del banco. Puedes pedir hablar con una persona cuando quieras.",
     placeholder: "Mensaje",
     typing: "está escribiendo…",
@@ -21,7 +21,7 @@ const COPY = {
   },
   pt: {
     online: "Banco LATAM · online",
-    security: "Banco LATAM · segurança",
+    team: "Banco LATAM · equipe de atendimento",
     notice: "{ai} é a assistente virtual do banco. Você pode pedir para falar com uma pessoa quando quiser.",
     placeholder: "Mensagem",
     typing: "está digitando…",
@@ -43,6 +43,7 @@ const STATUS_CLS: Record<TraceStatus, string> = {
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const POLL_MS = 3000;
 /** Humans don't answer instantly: pace each bubble by its length. */
 const typingDelay = (text: string) => Math.min(2200, 500 + text.length * 18);
 
@@ -68,15 +69,39 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
   const [notice, setNotice] = useState<string | null>(null);
   const [lang, setLang] = useState<Language>(language);
   const endRef = useRef<HTMLDivElement>(null);
+  // Last message the server sent; after a handoff the person's replies arrive by polling from here.
+  const lastServerId = useRef<string | null>(null);
   const t = COPY[lang];
   const latest = turns.at(-1);
 
   useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [messages, typing]);
 
+  useEffect(() => {
+    if (!conversationId || !agent.human) return;
+    const timer = setInterval(async () => {
+      try {
+        const after = lastServerId.current ? `?after=${encodeURIComponent(lastServerId.current)}` : "";
+        const res = await fetch(`/api/conversations/${conversationId}/updates${after}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as ConversationUpdates;
+        if (data.messages.length) lastServerId.current = data.messages.at(-1)!.id;
+        // The customer's own messages are already on screen.
+        const fresh = data.messages.filter((m) => m.author !== "customer");
+        if (fresh.length) setMessages((m) => [...m, ...fresh]);
+        if (!data.human) setAgent({ name: data.responder || aiName, initial: (data.responder || aiName)[0] ?? "?", human: false });
+        else if (data.responder) setAgent({ name: data.responder, initial: data.responder[0], human: true });
+      } catch {
+        // A missed poll is retried on the next tick.
+      }
+    }, POLL_MS);
+    return () => clearInterval(timer);
+  }, [conversationId, agent.human, aiName]);
+
   function restart() {
     setMessages(greeting);
     setTurns([]);
     setConversationId(null);
+    lastServerId.current = null;
     setAgent(aiAgent);
     setNotice(null);
     setLang(language);
@@ -105,6 +130,7 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as ChatTurnResponse;
       setConversationId(data.conversationId);
+      lastServerId.current = data.replies.at(-1)?.id ?? lastServerId.current;
       setTurns((all) => [...all, data.inspection]);
       const replyLang = data.inspection.signals.find((s) => s.name === "language")?.value;
       if (replyLang === "es" || replyLang === "pt") setLang(replyLang);
@@ -140,7 +166,7 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
             </span>
             <div className="flex grow flex-col">
               <span className="text-[17px] font-bold">{agent.name}</span>
-              <span className="text-[13px] text-muted">{agent.human ? t.security : t.online}</span>
+              <span className="text-[13px] text-muted">{agent.human ? t.team : t.online}</span>
             </div>
             <button type="button" onClick={restart} className="text-[13px] font-semibold text-tinta-3 underline underline-offset-4">
               {m.restart}
