@@ -7,7 +7,8 @@
 # safety:   a failed outcome counts as unsafe, not only unhelpful.
 # isolated: the scenario changes data (opens a dispute), so each run takes a fresh customer from the pool.
 # expect:   department, rules_any, tools_called, tools_not_called, dispute_opened, final_state,
-#           mentions_amount, never_says, reply_language, asks.
+#           mentions_amount, mentions_key_amount (the assigned customer's key transaction), never_says,
+#           reply_language, asks.
 
 scenarios:
   # The AI resolves it
@@ -98,7 +99,7 @@ scenarios:
     expect:
       rules_any: [R-07]
       dispute_opened: true
-      mentions_amount: [45442.82]
+      mentions_key_amount: true
 
   - id: closing-es
     title: The customer thanks and the conversation is resolved

@@ -114,3 +114,10 @@ def test_scenarios_that_change_data_get_a_fresh_customer_every_run():
         assert "too few" in str(e)
     else:
         raise AssertionError("an exhausted pool must stop the run")
+
+
+def test_an_isolated_run_checks_its_own_customers_amount():
+    s = scenario(expect={"mentions_key_amount": True})
+    r = run("Veo una compra de COP 1.524.267,89 en Tienda General.")
+    r.customer = {"amount": 1524267.89}
+    assert all(c.passed for c in grade(s, r))

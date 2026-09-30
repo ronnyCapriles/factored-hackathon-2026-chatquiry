@@ -29,6 +29,7 @@ class Run:
     department: str | None = None
     trace: dict = field(default_factory=dict)
     error: str | None = None
+    customer: dict = field(default_factory=dict)
 
     @property
     def ai_replies(self) -> list[str]:
@@ -63,7 +64,7 @@ class Runner:
         return any(case["kind"] == "dispute" for case in res.json()["cases"])
 
     async def play(self, scenario: Scenario, attempt: int, own: dict) -> Run:
-        run = Run(scenario.id, attempt)
+        run = Run(scenario.id, attempt, customer=own)
         try:
             started = await self.client.post("/v1/conversations", json={"channel": "api"}, headers=self._headers(own["customer_id"], scenario.language))
             started.raise_for_status()
