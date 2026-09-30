@@ -34,6 +34,7 @@ cd frontend && npm run dev                                # http://localhost:300
 
 - `docker compose logs -f api` follows the API, `docker compose exec api pytest` runs the backend tests.
 - `docker compose exec api python -m app.reset` deletes every conversation, dispute and trace so a demo starts clean.
+- `cd eval && uv run cq-eval run` plays the 30 evaluation scenarios through the bank-facing API and writes `eval/results/latest.json` (shown in Operación) and `docs/results.md`. First time: `uv run cq-eval setup`, then follow what it prints. Run `app.reset` before each evaluation.
 - A change to `backend/pyproject.toml` needs `docker compose up -d --build api`.
 - The API image has two targets: `dev` (this stack) and `prod` (the EC2 image). `CQ_ENV=prod` hides the API docs and refuses the default secrets.
 - `CHATQUIRY_API_MODE=mock` in `frontend/.env.local` runs the frontend on built-in fixtures, without the API.

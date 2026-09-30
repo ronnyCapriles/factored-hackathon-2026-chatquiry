@@ -83,10 +83,11 @@ Sessions slide: every page you open and every chat message renews them. Locally 
 
 Click **Chat de prueba**. Three columns:
 
-- **Left: Cliente de prueba.** Three real customers from the dataset, each with a suggested first message:
+- **Left: Cliente de prueba.** Seven real customers from the dataset, each with a suggested first message:
   - **Lucas Rodrigo Campos Aguilar** (México, Spanish): has a transfer made yesterday that is still pending, within its deadline.
   - **Juliana Catalina López Cárdenas** (Colombia, Spanish): has a transfer pending for days, past its deadline.
   - **Susana Pereyra Ruiz** (Argentina, Portuguese): has a purchase the bank's data flags as fraud.
+  - Four more customers, each with its suggested message: a declined purchase (expired card), a reversed deposit, an unrecognized purchase the AI may dispute on its own (no fraud signal, under the limit), and one above the AI's limit that goes to a person without a dispute.
 - **Center: the customer's phone.** You write as the customer. The line on top says the assistant is an AI and that the customer can ask for a person. **Reiniciar** starts a new conversation (the old one stays in the database).
 - **Right: Qué está haciendo la IA.** One card per turn with **Estado**, **Departamento**, **Atiende** (the AI or the person), **Regla** (which routing rule matched), the signals, and every step with its time. These are execution records, not the model's hidden reasoning.
 
@@ -348,16 +349,43 @@ Two safety nets:
 
 Laya, which the original plan had in this slot, was never set up; Jev replaces it.
 
-## 13. Automated checks
+## 13. The evaluation harness
+
+`eval/` plays 30 scripted scenarios (20 in Spanish, 10 in Portuguese) through the bank-facing API, three times each, and grades them with fixed checks on the replies and the trace: whether a person took over and in which team, which rules fired, which tools ran, whether a dispute was opened, amounts mentioned, text that must never appear, and the reply language. No model grades another model.
+
+The scenarios are data, in `eval/scenarios/demo-bank.yaml`. Another company would keep its own file; the runner and the checks stay the same.
+
+First time only:
+
+```
+cd eval
+uv run cq-eval setup        # creates the harness's signing key; add the line it prints to .env
+docker compose exec api python -m app.keys --name Evaluation   # add the key to .env as EVAL_API_KEY
+docker compose up -d api
+```
+
+Each evaluation:
+
+```
+docker compose exec api python -m app.reset      # scenarios that open disputes need clean customers
+cd eval && uv run cq-eval run                    # about 90 conversations, one at a time, 10 to 15 minutes
+```
+
+It prints one line per run and a summary, and writes `eval/results/latest.json` (the **Operación** page shows it) and `docs/results.md` (the report). `--only <scenario id>` runs a single scenario; `--runs 1` runs each once.
+
+A run that changes data (opening a dispute) takes its own customer from a pool the pipeline picks, so runs never interfere with each other. If a pool customer already has a dispute, the harness stops and asks for `app.reset`.
+
+## 14. Automated checks
 
 ```
 docker compose exec api pytest -q                      # 32 backend tests, offline (Jev is tested against a fake server) (a scripted model stands in for Mistral)
 cd backend && uv run ruff check app tests
 cd frontend && npm run lint && npm run typecheck && npm run check:i18n
 cd pipeline && uv run pytest -q
+cd eval && uv run pytest -q                              # the graders, offline
 ```
 
-## 14. Troubleshooting
+## 15. Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
