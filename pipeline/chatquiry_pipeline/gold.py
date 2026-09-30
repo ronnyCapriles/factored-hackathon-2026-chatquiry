@@ -9,6 +9,8 @@ import duckdb
 ROOT = Path(__file__).resolve().parents[2]
 DATA = Path(os.environ.get("CQ_DATA_DIR", ROOT / "data"))
 SAMPLE_SIZE = 2000
+# Evaluation scenarios that open disputes need a fresh customer for every run.
+EVAL_POOL = {"unrecognized_purchase_fraud_signal": 6, "unrecognized_purchase_eligible": 6}
 SEED = "chatquiry-42"
 # Assumption for the cost baseline, stated in every report that uses it.
 AGENT_COST_PER_MINUTE_USD = 0.50
@@ -95,8 +97,13 @@ def build(data: Path = DATA) -> dict:
     )
 
     as_of = con.execute("select max(transaction_date) from tx").fetchone()[0]
-    demo = _pick_demo(con, as_of)
-    demo_ids = ",".join(f"'{d['customer_id']}'" for d in demo)
+    picked = _pick_demo(con, as_of)
+    demo = [d for d in picked if d["role"] == "demo"]
+    eval_pool: dict[str, list[dict]] = {}
+    for d in picked:
+        if d["role"] == "eval":
+            eval_pool.setdefault(d["scenario"], []).append(d)
+    demo_ids = ",".join(f"'{d['customer_id']}'" for d in picked)
     con.execute(
         f"""create temp table sample as
         with active as (select * from customers where customer_status = 'Active'),
@@ -124,6 +131,8 @@ def build(data: Path = DATA) -> dict:
         "seed": SEED,
         "counts": counts,
         "demo_customers": demo,
+        # Extra customers per situation, so evaluation runs that change data never share one.
+        "eval_customers": eval_pool,
         "baseline": baseline,
     }
     (gold / "meta.json").write_text(json.dumps(meta, indent=2, default=str))
@@ -204,30 +213,33 @@ def _pick_demo(con: duckdb.DuckDBPyConnection, as_of) -> list[dict]:
     ]
     out: list[dict] = []
     for scenario, country, language, key_tx, extra in picks:
-        taken = ",".join(f"'{d['customer_id']}'" for d in out) or "''"
-        where_country = f"and c.country = '{country}'" if country else ""
-        row = con.execute(
-            f"""with p as (select timestamp '{as_of}' as as_of)
-            select c.customer_id, c.first_name, c.last_name, c.country,
-                   (select t.transaction_id from tx t where t.customer_id = c.customer_id and {key_tx}
-                    order by t.transaction_date desc limit 1) as key_tx
-            from customers c, p
-            where c.customer_status = 'Active' {where_country} and c.customer_id not in ({taken})
-              and exists (select 1 from tx t where t.customer_id = c.customer_id and {key_tx}) and {extra}
-            order by hash(c.customer_id || '{SEED}') limit 1"""
-        ).fetchone()
-        if row:
-            out.append(
-                {
-                    "customer_id": row[0],
-                    "first_name": row[1],
-                    "full_name": f"{row[1]} {row[2]}",
-                    "country": row[3],
-                    "language": language,
-                    "scenario": scenario,
-                    "transaction_id": row[4],
-                }
-            )
+        for role in ["demo"] + ["eval"] * EVAL_POOL.get(scenario, 0):
+            taken = ",".join(f"'{d['customer_id']}'" for d in out) or "''"
+            # The country only shapes the demo pick; the evaluation pool takes any country.
+            where_country = f"and c.country = '{country}'" if country and role == "demo" else ""
+            row = con.execute(
+                f"""with p as (select timestamp '{as_of}' as as_of)
+                select c.customer_id, c.first_name, c.last_name, c.country,
+                       (select t.transaction_id from tx t where t.customer_id = c.customer_id and {key_tx}
+                        order by t.transaction_date desc limit 1) as key_tx
+                from customers c, p
+                where c.customer_status = 'Active' {where_country} and c.customer_id not in ({taken})
+                  and exists (select 1 from tx t where t.customer_id = c.customer_id and {key_tx}) and {extra}
+                order by hash(c.customer_id || '{SEED}') limit 1"""
+            ).fetchone()
+            if row:
+                out.append(
+                    {
+                        "customer_id": row[0],
+                        "first_name": row[1],
+                        "full_name": f"{row[1]} {row[2]}",
+                        "country": row[3],
+                        "language": language,
+                        "scenario": scenario,
+                        "transaction_id": row[4],
+                        "role": role,
+                    }
+                )
     return out
 
 
