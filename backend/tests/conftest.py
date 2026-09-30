@@ -5,12 +5,17 @@ from httpx import ASGITransport, AsyncClient
 
 from app.core.config import get_settings
 from app.main import app
+from app.orchestrator.classifier import get_classifier
+from app.orchestrator.intake import RulesClassifier
 
 
 @pytest.fixture(autouse=True)
-def no_cloud_guardrail(monkeypatch):
-    # Tests never reach AWS; the guardrail path is covered by faking check_guardrail.
+def offline(monkeypatch):
+    # Tests never reach AWS or TypeSafe: the guardrail is faked where needed and Jev is tested against a fake server.
     monkeypatch.setattr(get_settings(), "guardrail_id", None)
+    app.dependency_overrides[get_classifier] = RulesClassifier
+    yield
+    app.dependency_overrides.pop(get_classifier, None)
 
 
 @pytest.fixture(scope="session")
