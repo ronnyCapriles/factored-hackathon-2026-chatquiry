@@ -260,9 +260,20 @@ Sign in as the person who received the handoff: Diego for S2, S4 and S7; Andrea 
   - **Hechos verificados**: the transaction and the dispute, each with its source.
   - **Acciones ya hechas**: for example "Disputa DSP-… abierta por ARS 4.650,87 con el sí del cliente".
   - **Pendiente para ti**: for fraud, "Confirmar si el cliente conserva la tarjeta" and "Evaluar bloqueo y reposición de la tarjeta".
-  - **Bloquear tarjeta**: a human-only action. It asks for confirmation, then shows a "not available yet" message.
+  - **Bloquear tarjeta**: a human-only action. After confirmation it is recorded in the handoff and the audit log, marked as simulated, since no card system is connected.
   - **Sugerencia de respuesta**: a suggested first reply in the customer's language. **Usar en mi respuesta** puts it in the reply box.
   - **Cliente**: segment, customer since, and **Ver ficha completa**.
+
+**Taking over the conversation** (only agents; the administrator's view stays read-only):
+
+1. Keep the test chat open in another tab, on the customer's side.
+2. In the agent's panel, type in **Escribe al cliente…** and click **Enviar**. The toast says "Mensaje enviado". Within about 3 seconds the message appears on the customer's phone in the test chat, and its header switches to the person.
+3. Write back as the customer in the test chat: the agent's panel shows the new message within about 4 seconds, without reloading. The AI stays silent.
+4. Then either:
+   - **Resolver** → confirm. The customer sees "Andrea marcó la conversación como resuelta. ¡Gracias por escribirnos!" and the conversation moves to **Resueltas**.
+   - **Devolver a Lía** → confirm. The customer sees "Lía retomó la conversación", the header switches back to the AI, and the AI continues knowing what the person said (it receives a summary). The security, frustration and person-request counts start again from zero.
+
+Every reply, resolution, hand-back and human-only action is recorded in **Auditoría**.
 
 **Disputas**: the dispute from S3 with its ID, customer, amount, opened by Lía, status **Abierta**, the policy that allowed it, owner **Andrea Ríos**, and its log ("Abierta por Lía con el sí del cliente").
 
@@ -285,8 +296,8 @@ Sign in as **Marco** (tab **Administrador**).
 
 ## 10. Not working yet
 
-- **The human side does not persist.** An agent's reply appears in their panel with the toast "Mensaje agregado a la vista", but it is not saved and does not reach the customer. **Resolver** and **Devolver a Lía** do not act yet. This is the next step.
-- After a handoff, the test chat shows no reply from the person; the customer's new messages are saved and the AI stays silent.
+- **Bloquear tarjeta** is simulated: it is recorded, but no card system is called.
+- A bank connected through the API receives a person's replies by polling `GET /v1/conversations/{id}/messages`; there are no webhooks yet.
 - **Operación** KPIs stay empty until the evaluation harness exists.
 - The bank-facing API (`POST /v1/conversations`, API key plus a signed customer assertion) works and has automated tests. It will be exercised by the evaluation harness; there is no screen for it.
 - Mistral varies between runs: sometimes it asks "¿es esta?" before checking, sometimes it checks directly. The orchestrator sends it back when it asks before searching or stalls, but wording still changes from run to run.
