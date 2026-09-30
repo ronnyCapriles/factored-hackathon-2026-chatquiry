@@ -312,3 +312,20 @@ async def test_an_allowed_dispute_that_was_not_proposed_is_sent_back(client, age
     assert steps(second)["verify.progress"] == "pending" and steps(second)["tool.propose_dispute"] == "pending"
     third = await send(client, agent, "sí", cid)
     assert steps(third)["action.open_dispute"] == "verified"
+
+
+async def test_when_the_model_ignores_the_reminder_the_orchestrator_proposes(client, agent, world):
+    llm = ScriptedLLM(
+        call("find_transactions", days_back=30),
+        say("¿Es esa compra?"),
+        call("policy_lookup", transaction_id=FRAUD_TX, question="dispute_eligibility"),
+        say("Voy a preparar el reclamo."),
+        say("Sí, confirmo."),
+    )
+    use(llm)
+    cid = (await send(client, agent, "No reconozco una compra"))["conversationId"]
+    second = await send(client, agent, "sí, esa", cid)
+    assert second["replies"][0]["text"].startswith("¿Quieres que abra una disputa por ARS 4.650,87?")
+    assert steps(second)["tool.propose_dispute"] == "pending"
+    third = await send(client, agent, "sí", cid)
+    assert steps(third)["action.open_dispute"] == "verified" and llm.calls == 5

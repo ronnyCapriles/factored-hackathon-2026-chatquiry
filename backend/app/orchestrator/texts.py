@@ -55,6 +55,11 @@ TEXTS: dict[str, dict[Locale, str]] = {
         "en": "Done, the dispute for {amount} is registered under number {dispute}.",
         "pt": "Pronto, a contestação de {amount} ficou registrada com o número {dispute}.",
     },
+    "dispute_confirm": {
+        "es": "¿Quieres que abra una disputa por {amount}? Respóndeme «sí» para abrirla.",
+        "en": "Do you want me to open a dispute for {amount}? Reply «yes» to open it.",
+        "pt": "Quer que eu abra uma contestação de {amount}? Responda «sim» para abrir.",
+    },
     "dispute_created_next": {
         "es": "Te aviso por aquí cualquier novedad. ¿Hay algo más en lo que te ayude?",
         "en": "I'll let you know here about any updates. Is there anything else I can help with?",

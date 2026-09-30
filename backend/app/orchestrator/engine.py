@@ -574,6 +574,7 @@ class Orchestrator:
     async def _agent_loop(self, system: str, tools: list[dict], messages: list[dict], box: ToolBox) -> str | None:
         rechecked = False
         nudged = False
+        reminded_to_propose = False
         for _ in range(MAX_MODEL_CALLS):
             reply = await self._call(system, tools, messages)
             messages.append({"role": "assistant", "content": reply.content})
@@ -599,12 +600,24 @@ class Orchestrator:
                 continue
             # The policy allows the dispute but nothing is proposed, so the customer's yes would confirm nothing.
             allowed = next((d for d in box.decisions if d.dispute_allowed), None)
-            if not nudged and allowed and not box.proposed and not self.pending_open:
-                nudged = True
-                self.rec.add("verify.progress", "the dispute is allowed but was not proposed; the model is sent back to propose it", "pending")
-                note = f"The policy allows this dispute ({allowed.params['transaction_id']}). Call propose_dispute now, then ask the customer for a clear yes."
-                messages.append({"role": "user", "content": [{"type": "text", "text": f"<system_check>{note}</system_check>"}]})
-                continue
+            if allowed and not box.proposed and not self.pending_open:
+                if not reminded_to_propose:
+                    reminded_to_propose = True
+                    self.rec.add("verify.progress", "the dispute is allowed but was not proposed; the model is sent back to propose it", "pending")
+                    note = (
+                        f"The policy allows this dispute ({allowed.params['transaction_id']}). Call propose_dispute now, then ask the customer for a clear yes."
+                    )
+                    messages.append({"role": "user", "content": [{"type": "text", "text": f"<system_check>{note}</system_check>"}]})
+                    continue
+                # Reminded and still not proposed: the orchestrator proposes it. Nothing opens without the customer's yes.
+                try:
+                    await box.run("propose_dispute", {"transaction_id": allowed.params["transaction_id"], "reason": "not_recognized"})
+                except ToolError:
+                    pass
+                else:
+                    self.rec.add("verify.progress", "the model did not propose the allowed dispute; the orchestrator proposed it", "pending")
+                    payload = box.proposed.payload
+                    return say("dispute_confirm", self.lang, amount=money(Decimal(payload["amount"]), payload["currency"], self.lang))
             # A reply that neither answers nor asks, right after finding transactions, is a stall.
             if not nudged and box.matches and not box.decisions and not box.proposed and "?" not in reply.text:
                 nudged = True
