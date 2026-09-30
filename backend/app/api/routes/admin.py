@@ -185,7 +185,8 @@ async def operations(ctx: Admin, session: Session) -> OperationsOut:
     return OperationsOut(
         sample=results is None,
         kpis=[Kpi(key=k, label=T(loc, f"kpi_{k}"), value=kpi.get(k), hint=T(loc, f"kpi_{k}_hint"), display=d) for k, d in keys],
-        segments=[SegmentRow(**row) for row in (results or {}).get("segments", [])]
+        # The harness writes language groups as keys, so they are shown in the viewer's language.
+        segments=[SegmentRow(**{**row, "group": T(loc, row["group"])}) for row in (results or {}).get("segments", [])]
         or [SegmentRow(group=T(loc, g), n=None, ai_resolved=None, with_human=None, unsafe=None) for g in ("seg_es", "seg_pt")],
         alerts=[
             AlertOut(id="no_human_reply", title=T(loc, "alert_no_human"), hint=T(loc, "alert_no_human_hint"), value=str(human_waiting or 0), severe=True),

@@ -131,6 +131,7 @@ class HandoffOut(Camel):
 
 class ConversationOut(ConversationSummary):
     country: str
+    department_id: str | None = None
     handed_off_at: str | None = None
     messages: list[MessageOut]
     handoff: HandoffOut | None = None

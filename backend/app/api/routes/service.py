@@ -111,6 +111,7 @@ async def get_conversation(conversation_id: str, ctx: Staff, session: Session) -
     return ConversationOut(
         **base.model_dump(),
         country=customer.country,
+        department_id=conv.department_id,
         handed_off_at=hhmm(conv.handed_off_at) or None,
         trace_id=conv.id,
         messages=[MessageOut(id=m.id, author=m.author, author_name=m.author_name, text=m.text, at=hhmm(m.created_at)) for m in messages],  # type: ignore[arg-type]
