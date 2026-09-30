@@ -42,7 +42,8 @@ class Message(Base, Tenant):
 class Handoff(Base, Tenant):
     __tablename__ = "handoffs"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
-    conversation_id: Mapped[str] = mapped_column(String(32), ForeignKey("conversations.id"), unique=True)
+    # A conversation can come back to the AI and be handed off again, so there can be several.
+    conversation_id: Mapped[str] = mapped_column(String(32), ForeignKey("conversations.id"), index=True)
     from_profile: Mapped[str] = mapped_column(String(60))
     reason: Mapped[str] = mapped_column(Text)
     policy_rule: Mapped[str] = mapped_column(String(40))

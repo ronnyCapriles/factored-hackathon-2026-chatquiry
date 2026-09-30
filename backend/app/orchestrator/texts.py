@@ -80,6 +80,16 @@ TEXTS: dict[str, dict[Locale, str]] = {
         "en": "Sorry, I had a problem checking that and I don't want to give you wrong information.",
         "pt": "Desculpe, tive um problema para verificar isso e não quero te passar uma informação errada.",
     },
+    "resolved_by_person": {
+        "es": "{agent} marcó la conversación como resuelta. ¡Gracias por escribirnos!",
+        "en": "{agent} marked the conversation as resolved. Thanks for writing to us!",
+        "pt": "{agent} marcou a conversa como resolvida. Obrigado por falar com a gente!",
+    },
+    "ai_back": {
+        "es": "{ai} retomó la conversación",
+        "en": "{ai} is back in the conversation",
+        "pt": "{ai} voltou à conversa",
+    },
     "system_name": {"es": "Sistema", "en": "System", "pt": "Sistema"},
 }
 

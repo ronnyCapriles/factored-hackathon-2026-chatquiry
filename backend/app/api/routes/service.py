@@ -106,7 +106,7 @@ async def get_conversation(conversation_id: str, ctx: Staff, session: Session) -
         raise HTTPException(status.HTTP_404_NOT_FOUND, "not_found")
     conv, customer = row
     messages = list(await session.scalars(_scoped(select(Message), Message, ctx).where(Message.conversation_id == conv.id).order_by(Message.created_at)))
-    handoff = await session.scalar(_scoped(select(Handoff), Handoff, ctx).where(Handoff.conversation_id == conv.id))
+    handoff = await session.scalar(_scoped(select(Handoff), Handoff, ctx).where(Handoff.conversation_id == conv.id).order_by(Handoff.created_at.desc()))
     base = _summary(conv, customer, messages[-1] if messages else None)
     return ConversationOut(
         **base.model_dump(),
