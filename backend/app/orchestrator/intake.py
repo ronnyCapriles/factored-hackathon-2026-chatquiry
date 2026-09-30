@@ -22,6 +22,8 @@ class Signals:
     frustration: float
     closing: bool = False
     identity_doubt: bool = False
+    # Which model or rule set produced these signals, for the trace.
+    by: str = ""
 
     def as_list(self) -> list[dict]:
         return [
@@ -45,7 +47,7 @@ class Signals:
 class IntakeClassifier(Protocol):
     name: str
 
-    def classify(self, text: str, current_language: str) -> Signals: ...
+    async def classify(self, text: str, current_language: str, context: str | None = None) -> Signals: ...
 
 
 def plain(text: str) -> str:
@@ -107,7 +109,7 @@ class RulesClassifier:
 
     name = "rules-v1"
 
-    def classify(self, text: str, current_language: str) -> Signals:
+    async def classify(self, text: str, current_language: str, context: str | None = None) -> Signals:
         t = plain(text)
         pt, es = len(re.findall(PT_HINT, t)), len(re.findall(ES_HINT, t))
         language = "pt" if pt > es else "es" if es > pt else current_language
@@ -134,6 +136,7 @@ class RulesClassifier:
             frustration=frustration,
             closing=intent == "other" and len(t.split()) <= 8 and _any(CLOSING, t),
             identity_doubt=_any(IDENTITY, t),
+            by=self.name,
         )
 
 
@@ -214,8 +217,3 @@ async def check_guardrail(text: str) -> GuardrailResult:
         return GuardrailResult(True, True, REDACTED, findings, secret=True)
     masked = outputs[0]["text"] if outputs and not blocked else text
     return GuardrailResult(True, blocked, masked, findings, topics=topics, attack=attack)
-
-
-@lru_cache
-def get_classifier() -> IntakeClassifier:
-    return RulesClassifier()

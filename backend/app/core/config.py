@@ -2,7 +2,7 @@ from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     bedrock_model: str = "mistral.mistral-large-3-675b-instruct"
     bedrock_fallback_model: str = "global.amazon.nova-2-lite-v1:0"
     llm_temperature: float = 0.2
+    # Intake signals: "jev" (TypeSafe) when a key is set, otherwise the keyword rules.
+    intake_classifier: str = "jev"
+    typesafe_api_key: SecretStr | None = None
+    typesafe_model: str = "jev-latest"
+    typesafe_url: str = "https://api.typesafe.ai/v1/systemone"
+    typesafe_timeout_seconds: float = 3.0
+
     guardrail_id: str | None = None
     guardrail_version: str = "DRAFT"
     # Claude only.

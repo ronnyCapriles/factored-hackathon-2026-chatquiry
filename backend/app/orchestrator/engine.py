@@ -157,11 +157,12 @@ class Orchestrator:
         guard = await self._guardrail(text)
         self._store(conversation, "customer", self._customer_name(), guard.text)
         started = self.rec.now()
-        signals = self.classifier.classify(guard.text, conversation.language)
+        signals = await self.classifier.classify(guard.text, conversation.language, context=self._last_ai_text())
         conversation.language = signals.language
         self.lang = signals.language
         detail = " · ".join(f"{s['name']}={s['value']}" + (f" ({s['confidence']})" if s.get("confidence") else "") for s in signals.as_list())
-        self.rec.add("intake.classifier", f"{self.classifier.name} · {detail}", "classified", started, versions=[f"classifier {self.classifier.name}"])
+        by = signals.by or self.classifier.name
+        self.rec.add("intake.classifier", f"{by} · {detail}", "classified", started, versions=[f"classifier {by}"])
         self.customer_text = guard.text
 
         counters = await self._count(signals, guard)
@@ -264,6 +265,16 @@ class Orchestrator:
         else:
             self._ai(say("handoff_request", self.lang))
             await self._handoff(target, reason="El cliente pidió hablar con una persona", rule=rule, pending=[])
+
+    def _last_ai_text(self) -> str | None:
+        """The assistant's previous message, so a short reply like "sí, esa" is read in context."""
+        for message in reversed(self.conversation.agent_messages or []):
+            if message["role"] == "assistant":
+                blocks = message["content"] if isinstance(message["content"], list) else [{"type": "text", "text": message["content"]}]
+                text = " ".join(b["text"] for b in blocks if b.get("type") == "text" and b.get("text"))
+                if text:
+                    return text[-600:]
+        return None
 
     def _customer_name(self) -> str:
         return f"{self.customer.first_name} {self.customer.last_name}"

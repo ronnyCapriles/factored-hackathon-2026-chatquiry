@@ -6,8 +6,9 @@ from sqlalchemy import select
 
 from app.api.deps import BankChannel, Session
 from app.models import Conversation, Customer, Message
+from app.orchestrator.classifier import get_classifier
 from app.orchestrator.engine import Orchestrator
-from app.orchestrator.intake import IntakeClassifier, get_classifier
+from app.orchestrator.intake import IntakeClassifier
 from app.orchestrator.llm import LLM, get_llm
 from app.schemas.api import Camel, ConversationState, MessageOut
 from app.services.format import hhmm

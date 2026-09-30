@@ -10,7 +10,7 @@ from app.api.routes.auth import profile_out
 from app.core.config import get_settings
 from app.core.context import RequestContext, localized
 from app.models import AiProfile, ApiKey, AuditLog, Channel, Connector, Conversation, Department, Guardrail, IntakeSignal, Policy, RoutingRule, StaffUser, Tool
-from app.orchestrator.intake import get_classifier
+from app.orchestrator.classifier import get_classifier
 from app.schemas.api import AuditEntryOut, AuditPage, StaffProfileOut
 from app.schemas.config import (
     AiProfileOut,

@@ -8,8 +8,9 @@ from sqlalchemy import select
 from app.api.deps import Session, Staff
 from app.core.context import RequestContext, localized
 from app.models import Conversation, Customer, StaffUser
+from app.orchestrator.classifier import get_classifier
 from app.orchestrator.engine import Orchestrator, TurnResult, customer_language, first_name, greeting_text, live_profile
-from app.orchestrator.intake import IntakeClassifier, get_classifier
+from app.orchestrator.intake import IntakeClassifier
 from app.orchestrator.llm import LLM, get_llm
 from app.schemas.api import ChatTurnRequest, ChatTurnResponse, MessageOut, Signal, TestCustomerOut, TraceStepOut, TurnInspection
 from app.services.audit import record
