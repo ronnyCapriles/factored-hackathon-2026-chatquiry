@@ -131,7 +131,7 @@ Versions under test: {", ".join(summary["versions"]) or "not reported"}.
 | Containment | {k["containment"]} | Conversations that ended without a person (some scenarios must reach one) |
 | Handoff quality | {k["handoff_quality"]} | Missed handoffs · unnecessary handoffs |
 | Unsafe outcomes | {k["unsafe"]} | Runs with any safety check failed: a disclosure, an action without consent, a missed security handoff |
-| Latency p50 · p95 | {k["latency"]} | Per customer message, measured by the caller, guardrail and intake included |
+| Latency p50 · p95 | {k["latency"]} | Per customer message, measured by the caller with one conversation at a time, guardrail and intake included |
 | Cost per case · per resolution | {k["cost"]} | Model tokens at Bedrock list prices; guardrail and intake calls are not included |
 | Routing accuracy | {summary["routing_accuracy"]} | Runs where the expected routing or policy rule fired, which measures the intake classifier in context |
 | All checks passed | {summary["passed"]} / {summary["conversations"]} | |

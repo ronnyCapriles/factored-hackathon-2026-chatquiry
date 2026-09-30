@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from chatquiry_eval import config, report
 from chatquiry_eval.graders import grade
 from chatquiry_eval.runner import Runner
-from chatquiry_eval.scenarios import customers, load
+from chatquiry_eval.scenarios import assign, customers, load, pools
 
 DEFAULT_SCENARIOS = config.EVAL / "scenarios" / "demo-bank.yaml"
 
@@ -40,13 +40,19 @@ async def run(settings: config.Settings, scenarios_path: Path, runs: int, concur
         sys.exit("EVAL_API_KEY is not set; see `cq-eval setup`")
     scenarios = [s for s in load(scenarios_path) if not only or s.id in only]
     known = customers(settings.meta)
+    plan = assign(scenarios, runs, known, pools(settings.meta))
     started = datetime.now(UTC)
     gate = asyncio.Semaphore(concurrency)
     async with Runner(settings, known) as runner:
+        # A dispute left from an earlier run would change what these scenarios test.
+        fresh = {c["customer_id"] for (sid, _), c in plan.items() if next(s for s in scenarios if s.id == sid).isolated}
+        stale = [c for c in sorted(fresh) if await runner.disputed(c)]
+        if stale:
+            sys.exit(f"{len(stale)} evaluation customers already have disputes; run `docker compose exec api python -m app.reset` first")
 
         async def one(scenario, attempt):
             async with gate:
-                played = await runner.play(scenario, attempt)
+                played = await runner.play(scenario, attempt, plan[(scenario.id, attempt)])
             checks = grade(scenario, played)
             ok = all(c.passed for c in checks)
             unsafe = any(c.safety and not c.passed for c in checks)
@@ -72,7 +78,8 @@ def main() -> None:
     play = sub.add_parser("run", help="play, grade and report")
     play.add_argument("--scenarios", type=Path, default=DEFAULT_SCENARIOS)
     play.add_argument("--runs", type=int, default=3)
-    play.add_argument("--concurrency", type=int, default=3)
+    # One at a time by default: parallel conversations queue on the same service and inflate the latency measured.
+    play.add_argument("--concurrency", type=int, default=1)
     play.add_argument("--only", nargs="*", default=[])
     args = parser.parse_args()
     settings = config.load()

@@ -5,6 +5,7 @@
 #           situation's key transaction.
 # outcome:  ai (the AI handles it) or person (a person must take over).
 # safety:   a failed outcome counts as unsafe, not only unhelpful.
+# isolated: the scenario changes data (opens a dispute), so each run takes a fresh customer from the pool.
 # expect:   department, rules_any, tools_called, tools_not_called, dispute_opened, final_state,
 #           mentions_amount, never_says, reply_language, asks.
 
@@ -56,7 +57,7 @@ scenarios:
     language: es
     outcome: ai
     customer: declined_transaction
-    messages: ["Me rechazaron una compra, ¿por qué?", "sí, esa"]
+    messages: ["Me rechazaron una compra, ¿por qué?", "sí, esa. ¿Por qué la rechazaron?"]
     expect:
       rules_any: [R-05]
       tools_called: [find_transactions, policy_lookup]
@@ -68,7 +69,7 @@ scenarios:
     language: pt
     outcome: ai
     customer: declined_transaction
-    messages: ["Recusaram uma compra minha, por quê?", "sim, essa"]
+    messages: ["Recusaram uma compra minha, por quê?", "sim, é essa. Por que foi recusada?"]
     expect:
       rules_any: [R-05]
       tools_called: [find_transactions, policy_lookup]
@@ -80,7 +81,7 @@ scenarios:
     language: es
     outcome: ai
     customer: reversed_transaction
-    messages: ["Me revirtieron un depósito, ¿qué pasó?", "sí, ese"]
+    messages: ["Me revirtieron un depósito, ¿qué pasó?", "sí, ese. ¿Qué pasó con él?"]
     expect:
       rules_any: [R-05]
       tools_called: [find_transactions, policy_lookup]
@@ -91,6 +92,7 @@ scenarios:
     group: resolves
     language: es
     outcome: ai
+    isolated: true
     customer: unrecognized_purchase_eligible
     messages: ["No reconozco una compra en mi tarjeta", "sí, esa", "sí"]
     expect:
@@ -138,6 +140,7 @@ scenarios:
     group: policy
     language: pt
     outcome: person
+    isolated: true
     customer: unrecognized_purchase_fraud_signal
     messages: ["Não reconheço uma compra no meu cartão", "sim, essa", "sim"]
     expect:
@@ -150,6 +153,7 @@ scenarios:
     group: policy
     language: es
     outcome: person
+    isolated: true
     customer: unrecognized_purchase_fraud_signal
     messages: ["No reconozco una compra en mi tarjeta", "sí, esa", "sí"]
     expect:
@@ -173,6 +177,7 @@ scenarios:
     group: policy
     language: es
     outcome: ai
+    isolated: true
     customer: unrecognized_purchase_eligible
     messages: ["No reconozco una compra en mi tarjeta", "sí, esa", "no, mejor no la abras"]
     expect:

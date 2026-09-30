@@ -57,9 +57,13 @@ class Runner:
         assertion = jwt.encode({"sub": customer_id, "aud": "chatquiry", "iat": now, "exp": now + timedelta(minutes=5)}, self.private_key, algorithm="RS256")
         return {"Authorization": f"Bearer {self.settings.api_key}", "X-Customer-Assertion": assertion, "X-Chatquiry-Locale": language}
 
-    async def play(self, scenario: Scenario, attempt: int) -> Run:
+    async def disputed(self, customer_id: str) -> bool:
+        res = await self.client.get(f"/v1/customers/{customer_id}", headers={"Authorization": f"Bearer {self.staff_token}"})
+        res.raise_for_status()
+        return any(case["kind"] == "dispute" for case in res.json()["cases"])
+
+    async def play(self, scenario: Scenario, attempt: int, own: dict) -> Run:
         run = Run(scenario.id, attempt)
-        own = self.known[scenario.customer]
         try:
             started = await self.client.post("/v1/conversations", json={"channel": "api"}, headers=self._headers(own["customer_id"], scenario.language))
             started.raise_for_status()
