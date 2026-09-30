@@ -141,39 +141,79 @@ def build(data: Path = DATA) -> dict:
 
 
 def _pick_demo(con: duckdb.DuckDBPyConnection, as_of) -> list[dict]:
-    """Real customers whose data already contain each demo scenario."""
+    """Real customers whose data already contain each scenario, with the transaction that makes it so.
+
+    The test chat offers them, and the evaluation harness uses them to exercise every path.
+    """
+    one_purchase = """(select count(*) from tx t where t.customer_id = c.customer_id and t.transaction_type = 'Purchase'
+                        and t.transaction_date > as_of - interval 30 day) = 1"""
+    quiet_week = "(select count(*) from tx t where t.customer_id = c.customer_id and t.transaction_date > as_of - interval 7 day) <= 3"
+    # (scenario, country, language, key transaction, extra condition on the customer)
     picks = [
         (
             "pending_transfer_in_time",
             "México",
             "es",
-            """exists (select 1 from tx t where t.customer_id = c.customer_id and t.transaction_type = 'Transfer'
-                      and t.transaction_status = 'Pending' and t.transaction_date > as_of - interval 20 hour)
-               and (select count(*) from tx t where t.customer_id = c.customer_id and t.transaction_type = 'Transfer'
-                      and t.transaction_date > as_of - interval 7 day) >= 2""",
+            "t.transaction_type = 'Transfer' and t.transaction_status = 'Pending' and t.transaction_date > as_of - interval 20 hour",
+            """(select count(*) from tx t where t.customer_id = c.customer_id and t.transaction_type = 'Transfer'
+                  and t.transaction_date > as_of - interval 7 day) >= 2""",
         ),
         (
             "pending_transfer_overdue",
             "Colombia",
             "es",
-            """exists (select 1 from tx t where t.customer_id = c.customer_id and t.transaction_type = 'Transfer'
-                      and t.transaction_status = 'Pending' and t.transaction_date between as_of - interval 5 day and as_of - interval 30 hour)""",
+            "t.transaction_type = 'Transfer' and t.transaction_status = 'Pending' and t.transaction_date between as_of - interval 5 day and as_of - interval 30 hour",
+            "true",
         ),
         (
             "unrecognized_purchase_fraud_signal",
             "Argentina",
             "pt",
-            """exists (select 1 from tx t where t.customer_id = c.customer_id and t.transaction_type = 'Purchase'
-                      and t.transaction_status = 'Approved' and (t.is_fraud or t.fraud_score > 30)
-                      and t.transaction_date > as_of - interval 30 day)""",
+            "t.transaction_type = 'Purchase' and t.transaction_status = 'Approved' and (t.is_fraud or t.fraud_score > 30) and t.transaction_date > as_of - interval 30 day",
+            one_purchase,
+        ),
+        (
+            "declined_transaction",
+            None,
+            "es",
+            "t.transaction_status = 'Declined' and t.response_code is not null and t.transaction_date > as_of - interval 7 day",
+            quiet_week,
+        ),
+        (
+            "reversed_transaction",
+            None,
+            "es",
+            "t.transaction_status = 'Reversed' and t.transaction_date > as_of - interval 7 day",
+            quiet_week,
+        ),
+        (
+            "unrecognized_purchase_eligible",
+            None,
+            "es",
+            """t.transaction_type = 'Purchase' and t.transaction_status = 'Approved' and not t.is_fraud and coalesce(t.fraud_score, 0) <= 30
+               and t.amount_usd <= 500 and t.transaction_date > as_of - interval 30 day""",
+            one_purchase,
+        ),
+        (
+            "unrecognized_purchase_over_limit",
+            None,
+            "es",
+            "t.transaction_type = 'Purchase' and t.transaction_status = 'Approved' and not t.is_fraud and t.amount_usd > 500 and t.transaction_date > as_of - interval 30 day",
+            one_purchase,
         ),
     ]
-    out = []
-    for scenario, country, language, cond in picks:
+    out: list[dict] = []
+    for scenario, country, language, key_tx, extra in picks:
+        taken = ",".join(f"'{d['customer_id']}'" for d in out) or "''"
+        where_country = f"and c.country = '{country}'" if country else ""
         row = con.execute(
             f"""with p as (select timestamp '{as_of}' as as_of)
-            select c.customer_id, c.first_name, c.last_name from customers c, p
-            where c.customer_status = 'Active' and c.country = '{country}' and {cond}
+            select c.customer_id, c.first_name, c.last_name, c.country,
+                   (select t.transaction_id from tx t where t.customer_id = c.customer_id and {key_tx}
+                    order by t.transaction_date desc limit 1) as key_tx
+            from customers c, p
+            where c.customer_status = 'Active' {where_country} and c.customer_id not in ({taken})
+              and exists (select 1 from tx t where t.customer_id = c.customer_id and {key_tx}) and {extra}
             order by hash(c.customer_id || '{SEED}') limit 1"""
         ).fetchone()
         if row:
@@ -182,9 +222,10 @@ def _pick_demo(con: duckdb.DuckDBPyConnection, as_of) -> list[dict]:
                     "customer_id": row[0],
                     "first_name": row[1],
                     "full_name": f"{row[1]} {row[2]}",
-                    "country": country,
+                    "country": row[3],
                     "language": language,
                     "scenario": scenario,
+                    "transaction_id": row[4],
                 }
             )
     return out
