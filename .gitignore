@@ -5,6 +5,9 @@
 *.pdf
 *.excalidraw
 Sistema@2x.png
+# evaluation keys and raw runs
+eval/.secrets/
+eval/results/runs/
 # data
 data/
 *.parquet

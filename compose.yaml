@@ -33,6 +33,8 @@ services:
       CQ_GUARDRAIL_ID: ${GUARDRAIL_ID:-}
       # Without a key the intake falls back to the keyword rules.
       CQ_TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
+      # Public key the evaluation harness signs customer assertions with (eval/.secrets holds the private half).
+      CQ_CUSTOMER_ASSERTION_PUBLIC_KEY: ${CUSTOMER_ASSERTION_PUBLIC_KEY:-}
       CQ_GUARDRAIL_VERSION: ${GUARDRAIL_VERSION:-DRAFT}
       # Bedrock uses your local AWS CLI profile; set AWS_PROFILE in the root .env.
       AWS_PROFILE: ${AWS_PROFILE:-default}
