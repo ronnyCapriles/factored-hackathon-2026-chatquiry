@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     jwt_ttl_minutes: int = 15
     session_max_hours: int = 12
     # Public key (PEM) of the bank that signs customer assertions for the channel API.
+    # Environment files hold one line, so escaped newlines are accepted.
     customer_assertion_public_key: str | None = None
 
     aws_region: str = "us-east-1"
