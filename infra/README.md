@@ -17,6 +17,20 @@ Roots read each other's outputs through `terraform_remote_state` when they need 
 |---|---|---|
 | `prod/guardrail` | Bedrock guardrail (Standard tier) and its published version | the API: `CQ_GUARDRAIL_ID`, `CQ_GUARDRAIL_VERSION` |
 
+## What production needs
+
+The API container makes outbound HTTPS (443) calls to Amazon Bedrock (model and guardrail) and to TypeSafe (`api.typesafe.ai`, the Jev intake classifier). The instance's security group must allow that egress; nothing needs to reach the API except through the load balancer or proxy in front of it.
+
+Secrets live in AWS Secrets Manager and reach the container as environment variables at start:
+
+| Secret | Environment variable |
+|---|---|
+| `chatquiry/prod/typesafe-api-key` | `CQ_TYPESAFE_API_KEY` |
+| `chatquiry/prod/jwt-secret` | `CQ_JWT_SECRET` |
+| `chatquiry/prod/seed-password` | `CQ_SEED_PASSWORD` |
+
+The instance role gets `secretsmanager:GetSecretValue` on those ARNs only. The TypeSafe key used during development is replaced by a production one before launch.
+
 ## First time
 
 The state bucket is created once by hand, with versioning and public access blocked:
