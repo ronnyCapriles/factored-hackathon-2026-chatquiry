@@ -12,7 +12,7 @@ from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.security import new_api_key
 from app.models import ApiKey
-from tests.test_orchestrator import ScriptedLLM, call, say, use, world  # noqa: F401
+from tests.test_orchestrator import ScriptedLLM, call, say, use
 from tests.test_test_chat import TENANT
 
 PRIVATE = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -25,7 +25,7 @@ def assertion(customer_id: str, lifetime: timedelta = timedelta(minutes=5), key=
 
 
 @pytest.fixture
-async def bank(monkeypatch, world):  # noqa: F811
+async def bank(monkeypatch, world):
     monkeypatch.setattr(get_settings(), "customer_assertion_public_key", PUBLIC_PEM)
     keys = {}
     async with SessionLocal() as s:
@@ -78,3 +78,15 @@ async def test_keys_and_assertions_are_checked(client, bank):
     ]
     for auth, expected in cases:
         assert (await client.post("/v1/conversations", headers=auth, json={})).status_code == expected, auth
+
+
+async def test_the_bank_polls_what_a_person_writes(client, agent, bank):
+    auth = headers(bank["KEY-T-WRITE"], assertion("CLI-T-ORCH"))
+    cid = (await client.post("/v1/conversations", headers=auth, json={})).json()["conversationId"]
+    use(ScriptedLLM())
+    handoff = await client.post(f"/v1/conversations/{cid}/messages", headers=auth, json={"text": "no soy Marta"})
+    assert handoff.json()["handedOff"]
+    last = handoff.json()["replies"][-1]["id"]
+    await client.post(f"/v1/conversations/{cid}/reply", headers=agent, json={"text": "Hola, soy Andrea."})
+    polled = (await client.get(f"/v1/conversations/{cid}/messages", headers=auth, params={"after": last})).json()
+    assert [m["text"] for m in polled["messages"]] == ["Hola, soy Andrea."] and polled["state"] == "with_human"

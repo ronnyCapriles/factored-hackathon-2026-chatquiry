@@ -38,3 +38,7 @@ async def agent(client: AsyncClient) -> dict[str, str]:
 @pytest.fixture(scope="session")
 async def admin(client: AsyncClient) -> dict[str, str]:
     return await login(client, "marco.vidal@chatquiry.demo")
+
+
+# Demo customers and transactions for orchestrator tests, shared by every test module.
+from tests.test_orchestrator import world  # noqa: E402, F401
