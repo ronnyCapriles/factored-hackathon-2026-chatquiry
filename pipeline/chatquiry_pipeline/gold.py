@@ -228,6 +228,7 @@ def _pick_demo(con: duckdb.DuckDBPyConnection, as_of) -> list[dict]:
                 order by hash(c.customer_id || '{SEED}') limit 1"""
             ).fetchone()
             if row:
+                amount = con.execute("select amount from tx where transaction_id = ?", [row[4]]).fetchone()[0]
                 out.append(
                     {
                         "customer_id": row[0],
@@ -237,6 +238,7 @@ def _pick_demo(con: duckdb.DuckDBPyConnection, as_of) -> list[dict]:
                         "language": language,
                         "scenario": scenario,
                         "transaction_id": row[4],
+                        "amount": float(amount),
                         "role": role,
                     }
                 )
