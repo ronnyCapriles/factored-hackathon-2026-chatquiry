@@ -209,8 +209,11 @@
     "send": "Send",
     "you": "You",
     "aiTag": "AI",
-    "sentTitle": "Message added to the view",
-    "sentMessage": "Sending through the customer's channel is not implemented yet."
+    "sentTitle": "Message sent",
+    "sentMessage": "The customer gets it on their channel.",
+    "resolvedToast": "Conversation resolved",
+    "returnedToast": "{ai} took the conversation back",
+    "actionFailed": "That didn't go through. Try again."
   },
   "copilot": {
     "label": "Copilot",
@@ -229,7 +232,8 @@
     "since": "Customer since",
     "fullFile": "View full profile",
     "humanOnly": "Human-only action",
-    "recorded": "Recorded in the audit log"
+    "recorded": "Recorded in the audit log",
+    "simulatedMessage": "{action} was recorded in the audit log as simulated: no card system is connected."
   },
   "customers": {
     "title": "Customers",

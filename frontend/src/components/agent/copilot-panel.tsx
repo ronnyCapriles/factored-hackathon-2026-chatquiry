@@ -53,7 +53,7 @@ export async function CopilotPanel({ conversation, readOnly = false }: { convers
             {h.pending.map((p) => (
               <p key={p} className="text-[14px]">{p}</p>
             ))}
-            {!readOnly && h.humanActions.map((a) => <HumanActionButton key={a.id} label={a.label} />)}
+            {!readOnly && h.humanActions.map((a) => <HumanActionButton key={a.id} conversationId={conversation.id} actionId={a.id} label={a.label} />)}
           </div>
 
           {h.suggestion && !readOnly && (

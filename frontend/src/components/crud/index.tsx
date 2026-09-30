@@ -335,6 +335,7 @@ export function PendingAction({
   size = "sm",
   className,
   confirm,
+  onConfirm,
 }: {
   action: string;
   children: ReactNode;
@@ -342,6 +343,8 @@ export function PendingAction({
   size?: "sm" | "md";
   className?: string;
   confirm?: string;
+  /** Runs after confirmation; without it the action reports it is not available yet. */
+  onConfirm?: () => void | Promise<void>;
 }) {
   const t = useMessages();
   const { notImplemented } = useToast();
@@ -360,7 +363,7 @@ export function PendingAction({
           footer={
             <>
               <Button variant="tertiary" size="sm" onClick={() => setOpen(false)}>{t.common.cancel}</Button>
-              <Button size="sm" onClick={() => { setOpen(false); notImplemented(action); }}>{t.common.confirm}</Button>
+              <Button size="sm" onClick={() => { setOpen(false); if (onConfirm) void onConfirm(); else notImplemented(action); }}>{t.common.confirm}</Button>
             </>
           }
         >

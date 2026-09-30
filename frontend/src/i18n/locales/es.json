@@ -209,8 +209,11 @@
     "send": "Enviar",
     "you": "Tú",
     "aiTag": "IA",
-    "sentTitle": "Mensaje agregado a la vista",
-    "sentMessage": "El envío por el canal del cliente aún no está implementado."
+    "sentTitle": "Mensaje enviado",
+    "sentMessage": "El cliente lo recibe por su canal.",
+    "resolvedToast": "Conversación resuelta",
+    "returnedToast": "{ai} retomó la conversación",
+    "actionFailed": "No se pudo completar. Inténtalo de nuevo."
   },
   "copilot": {
     "label": "Copiloto",
@@ -229,7 +232,8 @@
     "since": "Cliente desde",
     "fullFile": "Ver ficha completa",
     "humanOnly": "Acción solo humana",
-    "recorded": "Registrado en auditoría"
+    "recorded": "Registrado en auditoría",
+    "simulatedMessage": "{action} quedó registrada en auditoría como simulada: no hay un sistema de tarjetas conectado."
   },
   "customers": {
     "title": "Clientes",

@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { LOCALE_COOKIE, THEME_COOKIE, isLocale, isTheme } from "@/i18n/config";
 import { api } from "./api";
-import type { Availability, ProfileUpdate } from "./api/types";
+import type { Availability, Message, ProfileUpdate } from "./api/types";
 import { createStaffSession, destroyStaffSession, homeFor, requireStaff, safeNext } from "./session";
 
 /** Errors are catalog keys so the client shows them in the user's language. */
@@ -78,4 +78,31 @@ export async function saveProfile(_prev: FormState, form: FormData): Promise<For
   jar.set(THEME_COOKIE, theme, { path: "/", maxAge: YEAR, sameSite: "lax" });
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+// A person acting on a conversation. Errors reach the client, which shows them as a toast; sign-in redirects pass through.
+
+export async function replyToCustomer(conversationId: string, text: string): Promise<Message | null> {
+  await requireStaff("agent");
+  const clean = text.trim();
+  if (!clean || clean.length > 2000) return null;
+  return api().replyAsAgent(conversationId, clean);
+}
+
+export async function resolveConversation(conversationId: string) {
+  await requireStaff("agent");
+  await api().resolveConversation(conversationId);
+  revalidatePath("/app/conversations");
+}
+
+export async function returnConversationToAi(conversationId: string) {
+  await requireStaff("agent");
+  await api().returnToAi(conversationId);
+  revalidatePath("/app/conversations");
+}
+
+export async function runHumanAction(conversationId: string, actionId: string) {
+  await requireStaff("agent");
+  await api().runHumanAction(conversationId, actionId);
+  revalidatePath("/app/conversations");
 }

@@ -10,6 +10,7 @@ import type {
   Config,
   Conversation,
   ConversationSummary,
+  ConversationUpdates,
   CustomerRecord,
   Dispute,
   Integrations,
@@ -55,6 +56,7 @@ export function liveApi(explicitToken?: string): ChatquiryApi {
       const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
       throw new ApiError(res.status, typeof body?.detail === "string" ? body.detail : res.statusText);
     }
+    if (res.status === 204) return undefined as T;
     return (await res.json()) as T;
   }
 
@@ -87,6 +89,12 @@ export function liveApi(explicitToken?: string): ChatquiryApi {
     listConversations: (filter) => call<ConversationSummary[]>(`/v1/conversations?filter=${filter}`),
     conversationCounts: () => call<Record<ConversationFilter, number>>("/v1/conversations/counts"),
     getConversation: (cid) => find<Conversation>(`/v1/conversations/${id(cid)}`),
+    conversationUpdates: (cid, after) =>
+      call<ConversationUpdates>(`/v1/conversations/${id(cid)}/updates${after ? `?after=${encodeURIComponent(after)}` : ""}`),
+    replyAsAgent: (cid, text) => call<Message>(`/v1/conversations/${id(cid)}/reply`, { method: "POST", body: JSON.stringify({ text }) }),
+    resolveConversation: (cid) => call<void>(`/v1/conversations/${id(cid)}/resolve`, { method: "POST" }),
+    returnToAi: (cid) => call<void>(`/v1/conversations/${id(cid)}/return`, { method: "POST" }),
+    runHumanAction: (cid, actionId) => call<void>(`/v1/conversations/${id(cid)}/human-actions/${id(actionId)}`, { method: "POST" }),
     listCustomers: () => call<CustomerRecord[]>("/v1/customers"),
     getCustomer: (cid) => find<CustomerRecord>(`/v1/customers/${id(cid)}`),
     listDisputes: () => call<Dispute[]>("/v1/disputes"),

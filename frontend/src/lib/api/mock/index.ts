@@ -1,6 +1,7 @@
 import type { ChatquiryApi, ConversationFilter } from "../client";
 import { HUMAN_STATES } from "../client";
 import type { ConversationSummary, StaffProfile } from "../types";
+import { randomUUID } from "node:crypto";
 import { chatTurn, greeting } from "./chat-engine";
 import * as f from "./fixtures";
 
@@ -59,6 +60,30 @@ export const mockApi: ChatquiryApi = {
   async getConversation(id) {
     return f.conversations.find((c) => c.id === id) ?? null;
   },
+  async conversationUpdates(id, after) {
+    const conv = f.conversations.find((c) => c.id === id);
+    const from = conv && after ? conv.messages.findIndex((m) => m.id === after) + 1 : 0;
+    const human = conv ? HUMAN_STATES.includes(conv.state) : false;
+    return { messages: conv ? conv.messages.slice(from) : [], state: conv?.state ?? "resolved", responder: conv?.assignedTo ?? "", human };
+  },
+  async replyAsAgent(id, text) {
+    const conv = f.conversations.find((c) => c.id === id);
+    const message = { id: randomUUID(), author: "human" as const, authorName: "Andrea", text, at: new Date().toTimeString().slice(0, 5) };
+    if (conv) {
+      conv.messages.push(message);
+      conv.state = "with_human";
+    }
+    return message;
+  },
+  async resolveConversation(id) {
+    const conv = f.conversations.find((c) => c.id === id);
+    if (conv) conv.state = "resolved";
+  },
+  async returnToAi(id) {
+    const conv = f.conversations.find((c) => c.id === id);
+    if (conv) conv.state = "waiting_customer";
+  },
+  async runHumanAction() {},
   async listCustomers() {
     return f.customers;
   },

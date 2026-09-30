@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PendingAction } from "@/components/crud";
 import { useToast } from "@/components/feedback/toast";
 import { Button } from "@/components/ui";
 import { useMessages } from "@/i18n/client";
 import { fmt } from "@/i18n/config";
-import type { Conversation, Message } from "@/lib/api/types";
+import { replyToCustomer, resolveConversation, returnConversationToAi } from "@/lib/actions";
+import type { Conversation, ConversationUpdates, Message } from "@/lib/api/types";
+
+const POLL_MS = 4000;
 
 export function ConversationPanel({
   conversation,
@@ -23,8 +27,11 @@ export function ConversationPanel({
   const t = useMessages();
   const c = t.conversations;
   const { toast } = useToast();
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(conversation.messages);
   const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const lastId = useRef<string | null>(conversation.messages.at(-1)?.id ?? null);
   const endRef = useRef<HTMLDivElement>(null);
   const humanActive = !readOnly && (conversation.state === "with_human" || conversation.state === "needs_human");
   const aiName = conversation.handoff?.fromProfile;
@@ -37,13 +44,59 @@ export function ConversationPanel({
     return () => window.removeEventListener("cq:use-suggestion", onSuggestion);
   }, []);
 
-  function send() {
+  function append(incoming: Message[]) {
+    if (!incoming.length) return;
+    lastId.current = incoming.at(-1)!.id;
+    setMessages((current) => {
+      const seen = new Set(current.map((m) => m.id));
+      return [...current, ...incoming.filter((m) => !seen.has(m.id))];
+    });
+  }
+
+  // New customer messages and state changes show up without reloading while the conversation is open.
+  useEffect(() => {
+    if (conversation.state === "resolved") return;
+    const timer = setInterval(async () => {
+      try {
+        const after = lastId.current ? `?after=${encodeURIComponent(lastId.current)}` : "";
+        const res = await fetch(`/api/conversations/${conversation.id}/updates${after}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as ConversationUpdates;
+        append(data.messages);
+        if (data.state !== conversation.state) router.refresh();
+      } catch {
+        // A missed poll is retried on the next tick.
+      }
+    }, POLL_MS);
+    return () => clearInterval(timer);
+  }, [conversation.id, conversation.state, router]);
+
+  async function send() {
     const text = draft.trim();
-    if (!text) return;
-    const at = new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-    setMessages((m) => [...m, { id: crypto.randomUUID(), author: "human", authorName: agentName, text, at }]);
-    setDraft("");
-    toast({ kind: "info", title: c.sentTitle, message: c.sentMessage, duration: 3500 });
+    if (!text || sending) return;
+    setSending(true);
+    try {
+      const message = await replyToCustomer(conversation.id, text);
+      if (!message) return;
+      append([message]);
+      setDraft("");
+      toast({ kind: "success", title: c.sentTitle, message: c.sentMessage, duration: 3000 });
+      if (conversation.state !== "with_human") router.refresh();
+    } catch {
+      toast({ kind: "error", title: c.actionFailed, duration: 5000 });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function act(run: (id: string) => Promise<void>, title: string) {
+    try {
+      await run(conversation.id);
+      toast({ kind: "success", title, duration: 3500 });
+      router.refresh();
+    } catch {
+      toast({ kind: "error", title: c.actionFailed, duration: 5000 });
+    }
   }
 
   const meta = [
@@ -71,11 +124,12 @@ export function ConversationPanel({
           <>
             <PendingAction
               action={aiName ? fmt(c.returnAction, { ai: aiName }) : c.returnGeneric}
-              confirm={aiName ? fmt(c.returnConfirm, { ai: aiName }) : undefined}
+              confirm={aiName ? fmt(c.returnConfirm, { ai: aiName }) : c.returnGeneric}
+              onConfirm={() => act(returnConversationToAi, fmt(c.returnedToast, { ai: aiName ?? "" }))}
             >
               {aiName ? fmt(c.returnTo, { ai: aiName }) : c.returnGeneric}
             </PendingAction>
-            <PendingAction action={c.resolveAction} variant="ink" confirm={c.resolveConfirm}>
+            <PendingAction action={c.resolveAction} variant="ink" confirm={c.resolveConfirm} onConfirm={() => act(resolveConversation, c.resolvedToast)}>
               {c.resolve}
             </PendingAction>
           </>
@@ -117,7 +171,7 @@ export function ConversationPanel({
           className="flex shrink-0 gap-2.5 border-t-[1.5px] border-linea bg-superficie px-[22px] pb-[18px] pt-3.5"
           onSubmit={(e) => {
             e.preventDefault();
-            send();
+            void send();
           }}
         >
           <label htmlFor="reply" className="sr-only">{c.replyLabel}</label>
@@ -128,7 +182,7 @@ export function ConversationPanel({
             placeholder={c.replyPlaceholder}
             className="h-12 grow rounded-full border-[1.5px] border-linea bg-fondo px-[18px] text-[15px]"
           />
-          <Button type="submit" disabled={!draft.trim()}>{c.send}</Button>
+          <Button type="submit" disabled={!draft.trim() || sending}>{c.send}</Button>
         </form>
       )}
     </section>

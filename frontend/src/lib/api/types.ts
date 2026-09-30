@@ -113,6 +113,14 @@ export interface Conversation extends ConversationSummary {
   traceId: string;
 }
 
+/** What changed in a conversation after a given message; open screens poll it. */
+export interface ConversationUpdates {
+  messages: Message[];
+  state: ConversationState;
+  responder: string;
+  human: boolean;
+}
+
 export interface Product {
   id: string;
   label: string;

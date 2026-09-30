@@ -6,6 +6,7 @@ import type {
   Conversation,
   ConversationState,
   ConversationSummary,
+  ConversationUpdates,
   CustomerRecord,
   Dispute,
   Integrations,
@@ -28,6 +29,11 @@ export interface ChatquiryApi {
   listConversations(filter: ConversationFilter): Promise<ConversationSummary[]>;
   conversationCounts(): Promise<Record<ConversationFilter, number>>;
   getConversation(id: string): Promise<Conversation | null>;
+  conversationUpdates(id: string, after: string | null): Promise<ConversationUpdates>;
+  replyAsAgent(id: string, text: string): Promise<Message>;
+  resolveConversation(id: string): Promise<void>;
+  returnToAi(id: string): Promise<void>;
+  runHumanAction(id: string, actionId: string): Promise<void>;
   listCustomers(): Promise<CustomerRecord[]>;
   getCustomer(id: string): Promise<CustomerRecord | null>;
   listDisputes(): Promise<Dispute[]>;
