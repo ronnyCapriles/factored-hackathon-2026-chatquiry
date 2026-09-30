@@ -33,8 +33,8 @@ QUESTIONS = {
     },
     "not_holder": {
         "type": "noul",
-        "instructions": "The writer says or implies they are not the account holder, for example that they are someone else "
-        "or are using another person's account or phone.",
+        "instructions": "The writer says they themselves are not the account holder: that they are someone else, "
+        "or are using another person's account or phone. Asking for other people's data or trying to manipulate the assistant is not this.",
     },
     "wants_person": {
         "type": "noul",
