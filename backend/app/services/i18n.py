@@ -57,6 +57,26 @@ MESSAGES: dict[str, dict[Locale, str]] = {
         "en": "my transfer has been pending for days",
         "pt": "minha transferência está pendente há dias",
     },
+    "try_declined_transaction": {
+        "es": "me rechazaron una compra, ¿por qué?",
+        "en": "a purchase of mine was declined, why?",
+        "pt": "recusaram uma compra minha, por quê?",
+    },
+    "try_reversed_transaction": {
+        "es": "me revirtieron un depósito, ¿qué pasó?",
+        "en": "a deposit of mine was reversed, what happened?",
+        "pt": "estornaram um depósito meu, o que aconteceu?",
+    },
+    "try_unrecognized_purchase_eligible": {
+        "es": "no reconozco una compra en mi tarjeta",
+        "en": "I don't recognize a purchase on my card",
+        "pt": "não reconheço uma compra no meu cartão",
+    },
+    "try_unrecognized_purchase_over_limit": {
+        "es": "no reconozco una compra grande en mi tarjeta",
+        "en": "I don't recognize a large purchase on my card",
+        "pt": "não reconheço uma compra grande no meu cartão",
+    },
     "try_unrecognized_purchase_fraud_signal": {
         "es": "no reconozco una compra en mi tarjeta",
         "en": "I don't recognize a purchase on my card",
