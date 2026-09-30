@@ -138,6 +138,7 @@ class Orchestrator:
         self.events: list[str] = []
         self.remembered = False
         self.new_intent: str | None = None
+        self.pending_open = False
         self.customer_text = text
         self.usage = {"in": 0, "out": 0, "cost": 0.0}
 
@@ -479,6 +480,7 @@ class Orchestrator:
         system = prompts.system_prompt(self.profile, org.name if org else "", self.settings.data_as_of)
         department = self.departments.get(self.conversation.department_id or "")
         note = f"open a dispute for {pending.payload['transaction_id']} ({pending.payload['currency']} {pending.payload['amount']})" if pending else None
+        self.pending_open = pending is not None
         box = ToolBox(
             session=self.session,
             ctx=self.ctx,
@@ -593,6 +595,14 @@ class Orchestrator:
                 nudged = True
                 self.rec.add("verify.progress", "asked the customer before searching; the model is sent back to search first", "pending")
                 note = "Search the customer's recent transactions with find_transactions before asking them anything, then answer."
+                messages.append({"role": "user", "content": [{"type": "text", "text": f"<system_check>{note}</system_check>"}]})
+                continue
+            # The policy allows the dispute but nothing is proposed, so the customer's yes would confirm nothing.
+            allowed = next((d for d in box.decisions if d.dispute_allowed), None)
+            if not nudged and allowed and not box.proposed and not self.pending_open:
+                nudged = True
+                self.rec.add("verify.progress", "the dispute is allowed but was not proposed; the model is sent back to propose it", "pending")
+                note = f"The policy allows this dispute ({allowed.params['transaction_id']}). Call propose_dispute now, then ask the customer for a clear yes."
                 messages.append({"role": "user", "content": [{"type": "text", "text": f"<system_check>{note}</system_check>"}]})
                 continue
             # A reply that neither answers nor asks, right after finding transactions, is a stall.

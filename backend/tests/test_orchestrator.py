@@ -295,3 +295,20 @@ async def test_a_blocked_secret_is_never_stored(client, agent, world, monkeypatc
         stored = list(await s.scalars(select(Message.text).where(Message.conversation_id == turn["conversationId"])))
         history = (await s.get(Conversation, turn["conversationId"])).agent_messages
     assert REDACTED in stored and not any("4821" in t for t in stored) and "4821" not in json.dumps(history)
+
+
+async def test_an_allowed_dispute_that_was_not_proposed_is_sent_back(client, agent, world):
+    llm = ScriptedLLM(
+        call("find_transactions", days_back=30),
+        say("¿Es esa compra?"),
+        call("policy_lookup", transaction_id=FRAUD_TX, question="dispute_eligibility"),
+        say("Solo necesito que me digas sí para abrir el reclamo."),
+        call("propose_dispute", transaction_id=FRAUD_TX, reason="not_recognized"),
+        say("¿Confirmas que la abra?"),
+    )
+    use(llm)
+    cid = (await send(client, agent, "No reconozco una compra"))["conversationId"]
+    second = await send(client, agent, "sí, esa", cid)
+    assert steps(second)["verify.progress"] == "pending" and steps(second)["tool.propose_dispute"] == "pending"
+    third = await send(client, agent, "sí", cid)
+    assert steps(third)["action.open_dispute"] == "verified"
