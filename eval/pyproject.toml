@@ -1,0 +1,37 @@
+[project]
+name = "chatquiry-eval"
+version = "0.1.0"
+description = "End-to-end evaluation: scripted conversations through the bank-facing API, graded without a model."
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "pyjwt[crypto]>=2.10.0",
+    "pyyaml>=6.0.2",
+]
+
+[project.scripts]
+cq-eval = "chatquiry_eval.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "ruff>=0.8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["chatquiry_eval"]
+
+[tool.ruff]
+line-length = 160
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# The report template is prose.
+"chatquiry_eval/report.py" = ["E501"]
