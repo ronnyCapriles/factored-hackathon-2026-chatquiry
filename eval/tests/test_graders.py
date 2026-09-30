@@ -96,3 +96,21 @@ def test_summary_counts_resolution_handoffs_and_unsafe_runs():
     assert summary["kpis"]["safe_resolution"] == "100% · 1/1"
     assert summary["kpis"]["handoff_quality"] == "1 · 0" and summary["kpis"]["unsafe"] == "1 / 2"
     assert summary["segments"][0]["group"] == "seg_es" and summary["segments"][0]["n"] == 2
+
+
+def test_scenarios_that_change_data_get_a_fresh_customer_every_run():
+    from chatquiry_eval.scenarios import assign
+
+    known = {"fraud": {"customer_id": "DEMO"}}
+    pool = {"fraud": [{"customer_id": f"P{i}"} for i in range(3)]}
+    reads = scenario(id="reads", customer="fraud")
+    writes = scenario(id="writes", customer="fraud", isolated=True)
+    plan = assign([reads, writes], 3, known, pool)
+    assert {plan[("reads", a)]["customer_id"] for a in (1, 2, 3)} == {"DEMO"}
+    assert [plan[("writes", a)]["customer_id"] for a in (1, 2, 3)] == ["P0", "P1", "P2"]
+    try:
+        assign([writes], 4, known, pool)
+    except ValueError as e:
+        assert "too few" in str(e)
+    else:
+        raise AssertionError("an exhausted pool must stop the run")
