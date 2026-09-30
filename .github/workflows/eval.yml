@@ -1,0 +1,24 @@
+name: eval
+
+on:
+  push:
+    branches: [main]
+    paths: ["eval/**", ".github/workflows/eval.yml"]
+  pull_request:
+    paths: ["eval/**", ".github/workflows/eval.yml"]
+
+defaults:
+  run:
+    working-directory: eval
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      # The graders are tested offline; playing scenarios needs a running API and model access.
+      - run: uv run pytest -q
