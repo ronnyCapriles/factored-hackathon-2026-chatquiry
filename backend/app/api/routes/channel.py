@@ -5,6 +5,7 @@ from pydantic import Field
 from sqlalchemy import select
 
 from app.api.deps import BankChannel, Session
+from app.api.routes.handling import ConversationUpdates, conversation_updates
 from app.models import Conversation, Customer, Message
 from app.orchestrator.classifier import get_classifier
 from app.orchestrator.engine import Orchestrator
@@ -49,8 +50,7 @@ async def start(body: StartRequest, ctx: BankChannel, session: Session, llm: Mod
     return ChannelReply(conversation_id=conversation.id, state=conversation.state, handed_off=False, replies=_out(greeting))  # type: ignore[arg-type]
 
 
-@router.post("/{conversation_id}/messages", response_model=ChannelReply)
-async def message(conversation_id: str, body: CustomerMessage, ctx: BankChannel, session: Session, llm: Model, classifier: Classifier) -> ChannelReply:
+async def _own_conversation(session: Session, ctx, conversation_id: str) -> Conversation:
     # The assertion's customer must own the conversation; anything else looks like it does not exist.
     conversation = await session.scalar(
         select(Conversation).where(
@@ -62,6 +62,18 @@ async def message(conversation_id: str, body: CustomerMessage, ctx: BankChannel,
     )
     if not conversation:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "not_found")
+    return conversation
+
+
+@router.get("/{conversation_id}/messages", response_model=ConversationUpdates)
+async def messages(conversation_id: str, ctx: BankChannel, session: Session, after: str | None = None) -> ConversationUpdates:
+    """The bank polls this to deliver what a person writes after a handoff."""
+    return await conversation_updates(session, await _own_conversation(session, ctx, conversation_id), after)
+
+
+@router.post("/{conversation_id}/messages", response_model=ChannelReply)
+async def message(conversation_id: str, body: CustomerMessage, ctx: BankChannel, session: Session, llm: Model, classifier: Classifier) -> ChannelReply:
+    conversation = await _own_conversation(session, ctx, conversation_id)
     result = await Orchestrator(session, ctx, llm, classifier).turn(conversation, body.text)
     return ChannelReply(
         conversation_id=conversation.id,
