@@ -322,17 +322,20 @@
     "customer": "Test customer",
     "auditNote": "Every test conversation is recorded in the audit log under your user. The server asserts the customer's identity, never the browser.",
     "restart": "Restart",
+    "restartHint": "Start over with this customer. Other chats stay until you reload the page.",
     "inspector": "What the AI is doing",
     "state": "State",
     "department": "Department",
     "attending": "Handled by",
     "rule": "Rule",
+    "language": "Language",
     "empty": "Write as a customer and you'll see every step here: filters, signals, rules, tools, policies and verification.",
     "turn": "Turn {n}",
     "conversation": "Conversation {id}",
     "fullTrace": "see the full trace",
     "idle": "Execution records, not hidden model reasoning.",
-    "noCustomers": "There are no test customers yet. Load the data with the pipeline and open this page again."
+    "noCustomers": "There are no test customers yet. Load the data with the pipeline and open this page again.",
+    "inProgress": "Chat in progress"
   },
   "operations": {
     "title": "Operations",

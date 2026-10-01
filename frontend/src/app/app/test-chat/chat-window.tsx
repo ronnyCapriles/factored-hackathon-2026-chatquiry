@@ -6,15 +6,17 @@ import { StateBubble } from "@/components/brand/sign";
 import { Label } from "@/components/ui";
 import { useLocale, useMessages } from "@/i18n/client";
 import { LOCALE_HEADER, fmt } from "@/i18n/config";
-import type { ChatTurnResponse, ConversationUpdates, Language, Message, TraceStatus, TurnInspection } from "@/lib/api/types";
+import type { ChatLanguage, ChatTurnResponse, ConversationUpdates, Language, Message, TraceStatus } from "@/lib/api/types";
+import { agentFor, clearSession, freshSession, readSession, updateSession, useSession, type ChatSession } from "./sessions";
 
 // Customer-facing copy follows the customer's language, not the staff UI language.
-const COPY = {
+const COPY: Record<ChatLanguage, Record<string, string>> = {
   es: {
     online: "Banco LATAM · en línea",
     team: "Banco LATAM · equipo de atención",
     notice: "{ai} es la asistente virtual del banco. Puedes pedir hablar con una persona cuando quieras.",
     placeholder: "Mensaje",
+    send: "Enviar",
     typing: "está escribiendo…",
     expired: "Tu sesión expiró por seguridad. Vuelve a ingresar para continuar.",
     error: "No pudimos enviar tu mensaje. Inténtalo de nuevo.",
@@ -24,9 +26,20 @@ const COPY = {
     team: "Banco LATAM · equipe de atendimento",
     notice: "{ai} é a assistente virtual do banco. Você pode pedir para falar com uma pessoa quando quiser.",
     placeholder: "Mensagem",
+    send: "Enviar",
     typing: "está digitando…",
     expired: "Sua sessão expirou por segurança. Entre de novo para continuar.",
     error: "Não conseguimos enviar sua mensagem. Tente de novo.",
+  },
+  en: {
+    online: "Banco LATAM · online",
+    team: "Banco LATAM · service team",
+    notice: "{ai} is the bank's virtual assistant. You can ask for a person at any time.",
+    placeholder: "Message",
+    send: "Send",
+    typing: "is typing…",
+    expired: "Your session expired for security. Sign in again to continue.",
+    error: "We couldn't send your message. Please try again.",
   },
 };
 
@@ -46,6 +59,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const POLL_MS = 3000;
 /** Humans don't answer instantly: pace each bubble by its length. */
 const typingDelay = (text: string) => Math.min(2200, 500 + text.length * 18);
+const isChatLanguage = (v: unknown): v is ChatLanguage => v === "es" || v === "pt" || v === "en";
 
 interface Props {
   customerId: string;
@@ -59,177 +73,180 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
   const ui = useMessages();
   const uiLocale = useLocale();
   const m = ui.testChat;
-  const aiAgent = { name: aiName, initial: aiName[0] ?? "?", human: false };
-  const [messages, setMessages] = useState<Message[]>(greeting);
-  const [turns, setTurns] = useState<TurnInspection[]>([]);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const base = () => freshSession(greeting, language, aiName);
+  const session: ChatSession = useSession(customerId) ?? base();
+  const { messages, turns, conversationId, agent, typing, notice } = session;
   const [draft, setDraft] = useState("");
-  const [typing, setTyping] = useState<string | null>(null);
-  const [agent, setAgent] = useState(aiAgent);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [lang, setLang] = useState<Language>(language);
   const endRef = useRef<HTMLDivElement>(null);
-  // Last message the server sent; after a handoff the person's replies arrive by polling from here.
-  const lastServerId = useRef<string | null>(null);
-  const t = COPY[lang];
+  const t = COPY[session.lang];
   const latest = turns.at(-1);
+  const latestLang = latest?.signals.find((s) => s.name === "language")?.value;
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [messages, typing]);
+  useEffect(() => endRef.current?.scrollIntoView({ block: "end" }), [messages, typing]);
 
   useEffect(() => {
     if (!conversationId || !agent.human) return;
+    const id = customerId;
     const timer = setInterval(async () => {
       try {
-        const after = lastServerId.current ? `?after=${encodeURIComponent(lastServerId.current)}` : "";
+        const last = readSession(id)?.lastServerId;
+        const after = last ? `?after=${encodeURIComponent(last)}` : "";
         const res = await fetch(`/api/conversations/${conversationId}/updates${after}`, { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as ConversationUpdates;
-        if (data.messages.length) lastServerId.current = data.messages.at(-1)!.id;
         // The customer's own messages are already on screen.
-        const fresh = data.messages.filter((m) => m.author !== "customer");
-        if (fresh.length) setMessages((m) => [...m, ...fresh]);
-        if (!data.human) setAgent({ name: data.responder || aiName, initial: (data.responder || aiName)[0] ?? "?", human: false });
-        else if (data.responder) setAgent({ name: data.responder, initial: data.responder[0], human: true });
+        const fresh = data.messages.filter((x) => x.author !== "customer");
+        const responder = data.responder || aiName;
+        updateSession(id, base, (s) => ({
+          lastServerId: data.messages.at(-1)?.id ?? s.lastServerId,
+          messages: fresh.length ? [...s.messages, ...fresh] : s.messages,
+          agent: data.human ? (data.responder ? agentFor(data.responder, true) : s.agent) : agentFor(responder),
+        }));
       } catch {
         // A missed poll is retried on the next tick.
       }
     }, POLL_MS);
     return () => clearInterval(timer);
-  }, [conversationId, agent.human, aiName]);
-
-  function restart() {
-    setMessages(greeting);
-    setTurns([]);
-    setConversationId(null);
-    lastServerId.current = null;
-    setAgent(aiAgent);
-    setNotice(null);
-    setLang(language);
-  }
+    // base only rebuilds the same greeting; the poll restarts when the conversation or its owner changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerId, conversationId, agent.human, aiName]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const text = draft.trim();
     if (!text || typing) return;
+    // Replies land in this customer's chat even if the person switches to another one meanwhile.
+    const id = customerId;
+    const update = (change: (s: ChatSession) => Partial<ChatSession>) => updateSession(id, base, change);
     setDraft("");
-    setNotice(null);
     const at = new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
-    setMessages((m) => [...m, { id: crypto.randomUUID(), author: "customer", authorName: "Cliente", text, at }]);
-    setTyping(agent.name);
+    update((s) => ({
+      notice: null,
+      typing: s.agent.name,
+      messages: [...s.messages, { id: crypto.randomUUID(), author: "customer", authorName: "Cliente", text, at }],
+    }));
 
     try {
       const res = await fetch("/api/test-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", [LOCALE_HEADER]: uiLocale },
-        body: JSON.stringify({ customerId, conversationId, text }),
+        body: JSON.stringify({ customerId: id, conversationId: readSession(id)?.conversationId ?? null, text }),
       });
       if (res.status === 401) {
-        setNotice(COPY[lang].expired);
+        update(() => ({ notice: "expired" }));
         return;
       }
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as ChatTurnResponse;
-      setConversationId(data.conversationId);
-      lastServerId.current = data.replies.at(-1)?.id ?? lastServerId.current;
-      setTurns((all) => [...all, data.inspection]);
       const replyLang = data.inspection.signals.find((s) => s.name === "language")?.value;
-      if (replyLang === "es" || replyLang === "pt") setLang(replyLang);
+      update((s) => ({
+        conversationId: data.conversationId,
+        lastServerId: data.replies.at(-1)?.id ?? s.lastServerId,
+        turns: [...s.turns, data.inspection],
+        lang: isChatLanguage(replyLang) ? replyLang : s.lang,
+      }));
 
       for (const reply of data.replies) {
         if (reply.author === "system") {
-          setTyping(null);
+          update(() => ({ typing: null }));
           await sleep(900);
-          setMessages((m) => [...m, reply]);
           // The system line announces the person who takes over; the header follows it.
-          if (data.handedOff) setAgent({ name: data.inspection.profile, initial: data.inspection.profile[0] ?? "?", human: true });
+          update((s) => ({ messages: [...s.messages, reply], agent: data.handedOff ? agentFor(data.inspection.profile, true) : s.agent }));
           continue;
         }
-        if (reply.author === "human") setAgent({ name: reply.authorName, initial: reply.authorName[0], human: true });
-        setTyping(reply.authorName);
+        update((s) => ({ typing: reply.authorName, agent: reply.author === "human" ? agentFor(reply.authorName, true) : s.agent }));
         await sleep(typingDelay(reply.text));
-        setMessages((m) => [...m, reply]);
+        update((s) => ({ messages: [...s.messages, reply] }));
       }
     } catch {
-      setNotice(COPY[lang].error);
+      update(() => ({ notice: "error" }));
     } finally {
-      setTyping(null);
+      update(() => ({ typing: null }));
     }
   }
 
   return (
     <>
-      <div className="flex justify-center">
-        <div className="flex h-[min(780px,calc(100dvh-80px))] w-full max-w-[400px] flex-col overflow-hidden rounded-telefono border-2 border-tinta bg-superficie shadow-[8px_8px_0_var(--sombra)]">
-          <header className="flex h-[76px] shrink-0 items-center gap-3 border-b-[1.5px] border-linea px-4">
-            <span className={`flex size-[42px] items-center justify-center rounded-full text-[17px] font-bold ${agent.human ? "bg-tinta text-fondo" : "bg-marca"}`} aria-hidden="true">
-              {agent.initial}
-            </span>
-            <div className="flex grow flex-col">
-              <span className="text-[17px] font-bold">{agent.name}</span>
-              <span className="text-[13px] text-muted">{agent.human ? t.team : t.online}</span>
-            </div>
-            <button type="button" onClick={restart} className="text-[13px] font-semibold text-tinta-3 underline underline-offset-4">
-              {m.restart}
-            </button>
-          </header>
+      <section className="flex min-h-0 flex-col" aria-label={m.title}>
+        <header className="flex h-16 shrink-0 items-center gap-3 border-b-[1.5px] border-linea bg-superficie px-[22px]">
+          <span className={`flex size-10 shrink-0 items-center justify-center rounded-full text-[16px] font-bold ${agent.human ? "bg-tinta text-fondo" : "bg-marca"}`} aria-hidden="true">
+            {agent.initial}
+          </span>
+          <div className="flex min-w-0 grow flex-col">
+            <span className="text-[17px] font-bold">{agent.name}</span>
+            <span className="truncate text-[13px] text-muted">{agent.human ? t.team : t.online}</span>
+          </div>
+          <span className="rounded-full border-[1.5px] border-linea px-2.5 py-0.5 text-[12px] font-semibold text-tinta-3">{ui.languages[session.lang]}</span>
+          <button type="button" onClick={() => clearSession(customerId)} title={m.restartHint} className="text-[14px] font-semibold underline underline-offset-4">
+            {m.restart}
+          </button>
+        </header>
 
-          <div className="flex min-h-0 grow flex-col gap-2 overflow-y-auto px-4 py-3.5 text-[15px] leading-[1.42]" aria-live="polite">
-            {aiDisclosure && <p className="mx-auto mb-1.5 max-w-[290px] text-center text-[12px] text-muted">{fmt(t.notice, { ai: aiName })}</p>}
-            {messages.map((m, i) => {
-              if (m.author === "system") {
-                return (
-                  <p key={m.id} className="self-center py-1.5 text-[12px] text-muted">
-                    {m.text} · {m.at}
-                  </p>
-                );
-              }
-              const mine = m.author === "customer";
-              const continued = messages[i - 1]?.author === m.author;
+        <div className="flex min-h-0 grow flex-col gap-2 overflow-y-auto px-[26px] py-[18px] text-[15px] leading-[1.42]" aria-live="polite">
+          {aiDisclosure && <p className="mx-auto mb-2 max-w-[420px] text-center text-[12px] text-muted">{fmt(t.notice, { ai: aiName })}</p>}
+          <span className="grow" />
+          {messages.map((msg, i) => {
+            if (msg.author === "system") {
               return (
-                <p
-                  key={m.id}
-                  className={`max-w-[80%] px-3.5 py-2.5 ${
-                    mine ? "self-end rounded-[18px_18px_4px_18px] bg-tinta text-fondo" : `self-start bg-fondo ${continued ? "rounded-[4px_18px_18px_4px]" : "rounded-[18px_18px_18px_4px]"}`
-                  }`}
-                >
-                  {m.text}
+                <p key={msg.id} className="self-center py-1.5 text-[12px] text-muted">
+                  {msg.text} · {msg.at}
                 </p>
               );
-            })}
-            {typing && (
-              <div className="flex items-center gap-2 pl-0.5">
-                <span className="flex gap-[5px] rounded-[18px] bg-fondo px-3.5 py-3" aria-hidden="true">
-                  <span className="typing-dot size-[7px] rounded-full bg-muted" />
-                  <span className="typing-dot size-[7px] rounded-full bg-punto-2" />
-                  <span className="typing-dot size-[7px] rounded-full bg-punto" />
-                </span>
-                <span className="text-[13px] text-muted">
-                  {typing} {t.typing}
-                </span>
+            }
+            const mine = msg.author === "customer";
+            const continued = messages[i - 1]?.author === msg.author;
+            return (
+              <div key={msg.id} className={`flex max-w-[68%] flex-col gap-1 ${mine ? "items-end self-end" : "self-start"}`}>
+                {!mine && !continued && (
+                  <span className={`text-[12px] font-semibold ${msg.author === "ai" ? "text-marca-texto" : "text-tinta"}`}>{msg.authorName}</span>
+                )}
+                <p
+                  className={`px-3.5 py-2.5 ${
+                    mine
+                      ? "rounded-[18px_18px_4px_18px] bg-tinta text-fondo"
+                      : msg.author === "ai"
+                        ? `bg-marca-suave ${continued ? "rounded-[4px_18px_18px_4px]" : "rounded-[18px_18px_18px_4px]"}`
+                        : `border-[1.5px] border-linea bg-superficie ${continued ? "rounded-[4px_18px_18px_4px]" : "rounded-[18px_18px_18px_4px]"}`
+                  }`}
+                >
+                  {msg.text}
+                </p>
               </div>
-            )}
-            {notice && (
-              <p className="self-center py-1.5 text-center text-[13px] font-semibold text-atencion" role="alert">
-                {notice}
-              </p>
-            )}
-            <div ref={endRef} />
-          </div>
-
-          <form onSubmit={send} className="flex shrink-0 items-center gap-2.5 border-t-[1.5px] border-linea px-3.5 pb-5 pt-2.5">
-            <label htmlFor="msg" className="sr-only">{t.placeholder}</label>
-            <input id="msg" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={t.placeholder} autoComplete="off" maxLength={2000} className="h-12 grow rounded-full border-[1.5px] border-linea bg-fondo px-4 text-[15px]" />
-            <button type="submit" aria-label="Enviar" disabled={!draft.trim() || !!typing} className="flex size-12 shrink-0 items-center justify-center rounded-full border-2 border-tinta bg-marca disabled:opacity-50">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </button>
-          </form>
+            );
+          })}
+          {typing && (
+            <div className="flex items-center gap-2 pl-0.5">
+              <span className="flex gap-[5px] rounded-[18px] bg-marca-suave px-3.5 py-3" aria-hidden="true">
+                <span className="typing-dot size-[7px] rounded-full bg-muted" />
+                <span className="typing-dot size-[7px] rounded-full bg-punto-2" />
+                <span className="typing-dot size-[7px] rounded-full bg-punto" />
+              </span>
+              <span className="text-[13px] text-muted">
+                {typing} {t.typing}
+              </span>
+            </div>
+          )}
+          {notice && (
+            <p className="self-center py-1.5 text-center text-[13px] font-semibold text-atencion" role="alert">
+              {t[notice]}
+            </p>
+          )}
+          <div ref={endRef} />
         </div>
-      </div>
 
-      <aside className="flex h-[min(780px,calc(100dvh-80px))] flex-col overflow-hidden rounded-tarjeta border-2 border-tinta bg-superficie" aria-label={m.inspector}>
-        <div className="flex flex-col gap-3 border-b-[1.5px] border-linea px-5 py-4">
+        <form onSubmit={send} className="flex shrink-0 items-center gap-2.5 border-t-[1.5px] border-linea bg-superficie px-[22px] pb-[18px] pt-3.5">
+          <label htmlFor="msg" className="sr-only">{t.placeholder}</label>
+          <input id="msg" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={t.placeholder} autoComplete="off" maxLength={2000} className="h-12 grow rounded-full border-[1.5px] border-linea bg-fondo px-[18px] text-[15px]" />
+          <button type="submit" aria-label={t.send} disabled={!draft.trim() || !!typing} className="flex size-12 shrink-0 items-center justify-center rounded-full border-2 border-tinta bg-marca disabled:opacity-50">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
+        </form>
+      </section>
+
+      <aside className="flex min-h-0 flex-col border-l-[1.5px] border-linea bg-superficie" aria-label={m.inspector}>
+        <div className="flex shrink-0 flex-col gap-3 border-b-[1.5px] border-linea px-5 py-4">
           <span className="etiqueta">{m.inspector}</span>
           {latest ? (
             <div className="grid grid-cols-2 gap-3">
@@ -241,6 +258,10 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
                 </span>
               </div>
               <span className="flex flex-col leading-tight">
+                <span className="text-[12px] text-muted">{m.language}</span>
+                <span className="text-[14px] font-bold">{isChatLanguage(latestLang) ? ui.languages[latestLang] : "—"}</span>
+              </span>
+              <span className="flex flex-col leading-tight">
                 <span className="text-[12px] text-muted">{m.department}</span>
                 <span className="text-[14px] font-bold">{latest.department}</span>
               </span>
@@ -248,7 +269,7 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
                 <span className="text-[12px] text-muted">{m.attending}</span>
                 <span className="text-[14px] font-bold">{latest.profile}</span>
               </span>
-              <span className="flex flex-col leading-tight">
+              <span className="col-span-2 flex flex-col leading-tight">
                 <span className="text-[12px] text-muted">{m.rule}</span>
                 <span className="text-[14px] font-bold">{latest.rule ? `${latest.rule.id} · ${latest.rule.name}` : "—"}</span>
               </span>
@@ -290,7 +311,7 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
           ))}
         </ol>
 
-        <div className="border-t-[1.5px] border-linea px-5 py-3 text-[13px] text-muted">
+        <div className="shrink-0 border-t-[1.5px] border-linea px-5 py-3 text-[13px] text-muted">
           {conversationId ? (
             <span>
               {fmt(m.conversation, { id: conversationId })} ·{" "}

@@ -1,6 +1,8 @@
 // Mirrors the backend schemas.
 
 export type Language = "es" | "pt";
+/** A conversation can move to English when the customer writes in it. */
+export type ChatLanguage = Language | "en";
 export type Role = "agent" | "admin";
 
 /** Each state maps to one bubble in the state language. */
@@ -68,7 +70,7 @@ export interface ConversationSummary {
   customerId: string;
   customerName: string;
   customerInitials: string;
-  language: Language;
+  language: ChatLanguage;
   channel: Channel;
   state: ConversationState;
   lastMessage: string;

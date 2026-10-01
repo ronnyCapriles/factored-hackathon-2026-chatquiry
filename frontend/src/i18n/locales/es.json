@@ -322,17 +322,20 @@
     "customer": "Cliente de prueba",
     "auditNote": "Cada conversación de prueba queda registrada en auditoría con tu usuario. La identidad del cliente la afirma el servidor, nunca el navegador.",
     "restart": "Reiniciar",
+    "restartHint": "Empieza de cero con este cliente. Los demás chats se mantienen hasta que recargues la página.",
     "inspector": "Qué está haciendo la IA",
     "state": "Estado",
     "department": "Departamento",
     "attending": "Atiende",
     "rule": "Regla",
+    "language": "Idioma",
     "empty": "Escribe como cliente y aquí verás cada paso: filtros, señales, reglas, herramientas, políticas y verificación.",
     "turn": "Turno {n}",
     "conversation": "Conversación {id}",
     "fullTrace": "ver la traza completa",
     "idle": "Registros de ejecución, no razonamiento oculto del modelo.",
-    "noCustomers": "Aún no hay clientes de prueba. Carga los datos con el pipeline y vuelve a abrir esta página."
+    "noCustomers": "Aún no hay clientes de prueba. Carga los datos con el pipeline y vuelve a abrir esta página.",
+    "inProgress": "Chat en curso"
   },
   "operations": {
     "title": "Operación",

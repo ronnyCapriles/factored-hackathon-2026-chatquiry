@@ -322,17 +322,20 @@
     "customer": "Cliente de teste",
     "auditNote": "Cada conversa de teste fica registrada na auditoria com seu usuário. A identidade do cliente é afirmada pelo servidor, nunca pelo navegador.",
     "restart": "Reiniciar",
+    "restartHint": "Recomeça do zero com este cliente. As outras conversas ficam até você recarregar a página.",
     "inspector": "O que a IA está fazendo",
     "state": "Estado",
     "department": "Departamento",
     "attending": "Atende",
     "rule": "Regra",
+    "language": "Idioma",
     "empty": "Escreva como cliente e aqui você verá cada etapa: filtros, sinais, regras, ferramentas, políticas e verificação.",
     "turn": "Turno {n}",
     "conversation": "Conversa {id}",
     "fullTrace": "ver o rastro completo",
     "idle": "Registros de execução, não raciocínio oculto do modelo.",
-    "noCustomers": "Ainda não há clientes de teste. Carregue os dados com o pipeline e abra esta página de novo."
+    "noCustomers": "Ainda não há clientes de teste. Carregue os dados com o pipeline e abra esta página de novo.",
+    "inProgress": "Conversa em andamento"
   },
   "operations": {
     "title": "Operação",
