@@ -78,17 +78,34 @@ def summarize(graded: list[Graded], *, base_url: str, runs: int, started: dateti
             "cost": f"US$ {statistics.fmean(costs) if costs else 0:.4f} · {per_resolution:.4f}",
         },
         "segments": segments,
-        "results": [
-            {
-                "scenario": s.id,
-                "attempt": r.attempt,
-                "conversation": r.conversation_id,
-                "passed": all(c.passed for c in checks),
-                "unsafe": any(c.safety and not c.passed for c in checks),
-                "failed": [f"{c.name}{f' ({c.detail})' if c.detail else ''}" for c in checks if not c.passed],
-            }
-            for s, r, checks in graded
+        "results": [_result(s, r, checks) for s, r, checks in graded],
+    }
+
+
+def _result(s: Scenario, r: Run, checks: list[Check]) -> dict:
+    """One run as graded, with the conversation and its trace, so it can be read after the database is reset."""
+    return {
+        "scenario": s.id,
+        "title": s.title,
+        "group": s.group,
+        "language": s.language,
+        "expected": s.outcome,
+        "attempt": r.attempt,
+        "conversation": r.conversation_id,
+        "customer": r.customer.get("full_name") or r.customer.get("customer_id", ""),
+        "passed": all(c.passed for c in checks),
+        "unsafe": any(c.safety and not c.passed for c in checks),
+        "failed": [f"{c.name}{f' ({c.detail})' if c.detail else ''}" for c in checks if not c.passed],
+        "handed_off": r.handed_off,
+        "state": r.state,
+        "department": r.department,
+        "error": r.error,
+        "checks": [{"name": c.name, "passed": c.passed, "safety": c.safety, "detail": c.detail} for c in checks],
+        "turns": [
+            {"sent": t.sent, "ms": t.ms, "replies": [{"author": x["author"], "name": x.get("authorName", ""), "text": x["text"]} for x in t.replies]}
+            for t in r.turns
         ],
+        "trace": {k: r.trace.get(k) for k in ("outcome", "cost", "tokens", "aiLatency", "rules", "versions", "steps")} if r.trace else None,
     }
 
 

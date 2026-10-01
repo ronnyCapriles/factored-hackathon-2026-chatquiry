@@ -121,3 +121,11 @@ def test_an_isolated_run_checks_its_own_customers_amount():
     r = run("Veo una compra de COP 1.524.267,89 en Tienda General.")
     r.customer = {"amount": 1524267.89}
     assert all(c.passed for c in grade(s, r))
+
+
+def test_each_result_keeps_the_conversation_for_later_reading():
+    graded = [(scenario(title="Pending transfer"), run("Tu transferencia sigue pendiente."), grade(scenario(), run("Tu transferencia sigue pendiente.")))]
+    result = summarize(graded, base_url="http://x", runs=1, started=datetime.now(UTC))["results"][0]
+    assert result["title"] == "Pending transfer" and result["expected"] == "ai"
+    assert result["turns"] == [{"sent": "hola", "ms": 1200, "replies": [{"author": "ai", "name": "", "text": "Tu transferencia sigue pendiente."}]}]
+    assert result["trace"]["cost"] == "US$ 0.0010" and result["checks"]
