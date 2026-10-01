@@ -98,7 +98,8 @@ export async function StaffShell({ user, children }: { user: StaffUser; children
           </form>
         </div>
       </aside>
-      <main className="flex min-h-0 flex-col overflow-y-auto">{children}</main>
+      {/* relative keeps absolutely positioned descendants (sr-only labels) inside the scroll area instead of stretching the page. */}
+      <main className="relative flex min-h-0 flex-col overflow-y-auto">{children}</main>
     </div>
   );
 }
