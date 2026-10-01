@@ -112,7 +112,29 @@
       "lead": "Chatquiry resuelve las consultas repetibles con el tono de una persona, y le entrega a tu equipo cada caso delicado con los hechos ya verificados. Se conecta a los canales que tus clientes ya usan y a los sistemas que tu banco ya tiene. No reemplaza a nadie: le da más alcance a cada agente.",
       "ctaTest": "Probar el chat de prueba",
       "ctaAgent": "Ver el lado del agente",
-      "sample": "Ejemplo de conversación"
+      "sample": "Ejemplo de conversación",
+      "demo": {
+        "bank": "Banco LATAM",
+        "online": "Asistente virtual · en línea",
+        "agent": "Andrea · Seguridad y fraude",
+        "composer": "Mensaje",
+        "typing": "escribiendo…",
+        "trail": "Estado",
+        "legend": "Las burbujas son lo que ve el cliente; las etiquetas, lo que hace la IA por detrás.",
+        "c1": "No reconozco una compra de ayer",
+        "a1": "Veo una compra de ARS 185.000 ayer a las 23:41, en una tienda en línea. ¿Es esa?",
+        "c2": "Sí, esa. ¿Puedes abrir la disputa?",
+        "a2": "Listo, abrí la disputa DSP-0192. Como puede ser fraude, te paso con Andrea, de seguridad. Ya tiene todo el contexto.",
+        "joined": "Andrea se unió a la conversación",
+        "h1": "Hola, soy Andrea. Ya revisé todo. ¿Tu tarjeta sigue contigo?",
+        "guard": "guardrail · permitido",
+        "intent": "intent = txn_dispute · 0.97",
+        "find": "find_transactions · 1 coincidencia",
+        "policy": "política de fraude · disputa permitida",
+        "yes": "sí del cliente · verificado",
+        "opened": "DSP-0192 · releída en la base",
+        "handoff": "traspaso → Andrea · 4 hechos"
+      }
     },
     "philosophy": {
       "eyebrow": "Filosofía",

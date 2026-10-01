@@ -112,7 +112,29 @@
       "lead": "Chatquiry resolves repeatable requests with a human tone, and hands every sensitive case to your team with the facts already verified. It connects to the channels your customers already use and the systems your bank already has. It replaces no one: it gives every agent more reach.",
       "ctaTest": "Try the test chat",
       "ctaAgent": "See the agent side",
-      "sample": "Sample conversation"
+      "sample": "Sample conversation",
+      "demo": {
+        "bank": "Banco LATAM",
+        "online": "Virtual assistant · online",
+        "agent": "Andrea · Security and fraud",
+        "composer": "Message",
+        "typing": "typing…",
+        "trail": "State",
+        "legend": "Bubbles are what the customer sees; tags are what the AI does behind them.",
+        "c1": "I don't recognize a purchase from yesterday",
+        "a1": "I see a purchase of ARS 185,000 yesterday at 23:41, at an online store. Is that the one?",
+        "c2": "Yes, that one. Can you open a dispute?",
+        "a2": "Done, I opened dispute DSP-0192. Since it may be fraud, I'm passing you to Andrea from security. She already has the full context.",
+        "joined": "Andrea joined the conversation",
+        "h1": "Hi, I'm Andrea. I've reviewed everything. Do you still have your card?",
+        "guard": "guardrail · allowed",
+        "intent": "intent = txn_dispute · 0.97",
+        "find": "find_transactions · 1 match",
+        "policy": "fraud policy · dispute allowed",
+        "yes": "customer's yes · verified",
+        "opened": "DSP-0192 · read back from the database",
+        "handoff": "handoff → Andrea · 4 facts"
+      }
     },
     "philosophy": {
       "eyebrow": "Philosophy",

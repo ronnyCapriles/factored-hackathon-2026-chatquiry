@@ -128,7 +128,7 @@ html {
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .typing-dot { animation: none; }
+  .typing-dot, .rise, .caret { animation: none; }
 }
 
 body {
@@ -169,6 +169,15 @@ body {
 .typing-dot { animation: typing 1.2s infinite ease-in-out; }
 .typing-dot:nth-child(2) { animation-delay: 0.15s; }
 .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/* The landing's sample chat: each bubble or tag rises in; the composer caret blinks. */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.rise { animation: rise 320ms ease-out both; }
+@keyframes caret { 50% { opacity: 0; } }
+.caret { animation: caret 1s steps(1) infinite; }
 
 /* Toasts: the bar drains; hovering or focusing the toast pauses it. */
 @keyframes toast-drain {

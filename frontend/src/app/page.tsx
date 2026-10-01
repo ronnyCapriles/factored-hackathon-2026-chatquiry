@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { StateBubble, Wordmark } from "@/components/brand/sign";
+import { SampleChat } from "@/components/landing/sample-chat";
 import { PrefsSwitcher } from "@/components/prefs-switcher";
 import { ButtonLink, Card } from "@/components/ui";
 import { getMessages, getTheme } from "@/i18n/server";
@@ -67,13 +68,7 @@ export default async function Landing() {
             <ButtonLink href="/login?as=agent" variant="secondary" className="h-14 px-[30px] text-[18px]">{l.hero.ctaAgent}</ButtonLink>
           </div>
         </div>
-        <div className="flex flex-col gap-2.5 rounded-telefono border-2 border-tinta bg-superficie p-[22px] text-[16px] leading-[1.42] shadow-[8px_8px_0_var(--sombra)]" aria-label={l.hero.sample} lang="pt">
-          <p className="max-w-[82%] self-end rounded-[18px_18px_4px_18px] bg-tinta px-3.5 py-2.5 text-fondo">Não reconheço uma compra de ontem</p>
-          <p className="max-w-[82%] self-start rounded-[18px_18px_18px_4px] bg-fondo px-3.5 py-2.5">Vejo uma compra de ARS 185.000 ontem às 23:41, numa loja online. É essa?</p>
-          <p className="max-w-[82%] self-end rounded-[18px_18px_4px_18px] bg-tinta px-3.5 py-2.5 text-fondo">Isso. Pode abrir a contestação</p>
-          <p className="max-w-[82%] self-start rounded-[18px_18px_18px_4px] bg-fondo px-3.5 py-2.5">Pronto, DSP-0192. Vou passar você para a Andrea, da segurança. Ela já sabe de tudo.</p>
-          <p className="self-center pt-1 text-[13px] text-muted">Andrea entrou na conversa</p>
-        </div>
+        <SampleChat copy={l.hero.demo} states={t.states} label={l.hero.sample} />
       </Container>
 
       <section id="filosofia" className="scroll-mt-4 bg-panel py-[88px] text-panel-texto">
