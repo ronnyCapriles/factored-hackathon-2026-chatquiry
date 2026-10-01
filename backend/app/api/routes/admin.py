@@ -2,15 +2,31 @@ import json
 from datetime import date, datetime, time
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 
 from app.api.deps import Admin, Session, Staff
 from app.api.routes.auth import profile_out
 from app.core.config import get_settings
 from app.core.context import RequestContext, localized
-from app.models import AiProfile, ApiKey, AuditLog, Channel, Connector, Conversation, Department, Guardrail, IntakeSignal, Policy, RoutingRule, StaffUser, Tool
+from app.models import (
+    AiProfile,
+    ApiKey,
+    AuditLog,
+    Channel,
+    ClassifierQuestions,
+    Connector,
+    Conversation,
+    Department,
+    Guardrail,
+    IntakeSignal,
+    Policy,
+    RoutingRule,
+    StaffUser,
+    Tool,
+)
 from app.orchestrator.classifier import get_classifier
+from app.orchestrator.jev import QUESTIONS, JevClassifier, request_body, validate_questions
 from app.schemas.api import AuditEntryOut, AuditPage, StaffProfileOut
 from app.schemas.config import (
     AiProfileOut,
@@ -22,6 +38,8 @@ from app.schemas.config import (
     DepartmentOut,
     GuardrailOut,
     IntakeOut,
+    IntakeQuestionsIn,
+    IntakeQuestionsOut,
     IntakeSignalOut,
     IntegrationsOut,
     Kpi,
@@ -38,6 +56,7 @@ from app.schemas.config import (
     TeamMember,
     ToolOut,
 )
+from app.services.audit import record
 from app.services.i18n import T
 
 router = APIRouter(prefix="/v1", tags=["admin"])
@@ -45,6 +64,59 @@ router = APIRouter(prefix="/v1", tags=["admin"])
 
 def _ws(model, ctx: RequestContext):
     return select(model).where(model.workspace_id == ctx.workspace_id)
+
+
+SAMPLE_MESSAGE = "no reconozco una compra de ayer en mi tarjeta"
+SAMPLE_PREVIOUS = "Hola, Valentina. ¿En qué te ayudo hoy?"
+
+
+def _questions_out(row: ClassifierQuestions | None) -> IntakeQuestionsOut:
+    settings = get_settings()
+    questions = row.questions if row else QUESTIONS
+    body = request_body(settings.typesafe_model, questions, SAMPLE_MESSAGE, SAMPLE_PREVIOUS)
+    return IntakeQuestionsOut(
+        provider="TypeSafe Jev",
+        model=settings.typesafe_model,
+        endpoint=settings.typesafe_url,
+        active=isinstance(get_classifier(), JevClassifier),
+        fallback="rules-v1",
+        questions=questions,
+        is_default=questions == QUESTIONS,
+        version=row.version if row else None,
+        updated_by=row.updated_by if row else None,
+        updated_at=row.updated_at.strftime("%Y-%m-%d %H:%M") if row and row.updated_at else None,
+        request=json.dumps(body, indent=2, ensure_ascii=False),
+    )
+
+
+async def _save_questions(session: Session, ctx: RequestContext, questions: dict, action: str) -> IntakeQuestionsOut:
+    staff = await session.get(StaffUser, ctx.user_id)
+    name = staff.name if staff else ctx.user_id
+    row = await session.scalar(_ws(ClassifierQuestions, ctx))
+    if row:
+        row.questions, row.version, row.updated_by = questions, row.version + 1, name
+    else:
+        row = ClassifierQuestions(org_id=ctx.org_id, workspace_id=ctx.workspace_id, questions=questions, version=1, updated_by=name)
+        session.add(row)
+    await session.flush()
+    await record(session, ctx, actor=name, actor_kind="human", action=f"{action} (v{row.version})", target="intake.classifier", outcome="allowed")
+    await session.commit()
+    await session.refresh(row)
+    return _questions_out(row)
+
+
+@router.put("/config/intake/questions", response_model=IntakeQuestionsOut)
+async def save_intake_questions(body: IntakeQuestionsIn, ctx: Admin, session: Session) -> IntakeQuestionsOut:
+    try:
+        questions = validate_questions(body.questions)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(e)) from None
+    return await _save_questions(session, ctx, questions, "Changed the intake questions")
+
+
+@router.delete("/config/intake/questions", response_model=IntakeQuestionsOut)
+async def restore_intake_questions(ctx: Admin, session: Session) -> IntakeQuestionsOut:
+    return await _save_questions(session, ctx, QUESTIONS, "Restored the default intake questions")
 
 
 @router.get("/config", response_model=ConfigOut)
@@ -59,6 +131,7 @@ async def get_config(ctx: Staff, session: Session) -> ConfigOut:
     guardrails = list(await session.scalars(_ws(Guardrail, ctx)))
     policies = list(await session.scalars(_ws(Policy, ctx).order_by(Policy.id)))
     signals = list(await session.scalars(_ws(IntakeSignal, ctx)))
+    wording = await session.scalar(_ws(ClassifierQuestions, ctx))
     dept_by_profile = {d.profile_id: localized(d.name, loc) for d in departments if d.profile_id}
 
     return ConfigOut(
@@ -121,6 +194,7 @@ async def get_config(ctx: Staff, session: Session) -> ConfigOut:
             classifier=get_classifier().name,
             guardrail=guardrails[0].id if guardrails else "",
             signals=[IntakeSignalOut(name=s.name, kind=s.kind, description=localized(s.description, loc), threshold=s.threshold) for s in signals],  # type: ignore[arg-type]
+            questions=_questions_out(wording),
         ),
         routing=[
             RoutingRuleOut(

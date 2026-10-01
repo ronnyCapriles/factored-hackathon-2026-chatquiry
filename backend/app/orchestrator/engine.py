@@ -13,6 +13,7 @@ from app.core.config import get_settings
 from app.core.context import RequestContext, localized
 from app.models import (
     AiProfile,
+    ClassifierQuestions,
     Conversation,
     Customer,
     Department,
@@ -158,14 +159,18 @@ class Orchestrator:
         guard = await self._guardrail(text)
         self._store(conversation, "customer", self._customer_name(), guard.text)
         started = self.rec.now()
-        signals = await self.classifier.classify(guard.text, conversation.language, context=self._last_ai_text())
+        wording = await self.session.scalar(self._ws(ClassifierQuestions))
+        signals = await self.classifier.classify(
+            guard.text, conversation.language, context=self._last_ai_text(), questions=wording.questions if wording else None
+        )
         conversation.language = signals.language
         self.lang = signals.language
         detail = " · ".join(f"{s['name']}={s['value']}" + (f" ({s['confidence']})" if s.get("confidence") else "") for s in signals.as_list())
         if signals.detected_language and signals.detected_language != signals.language:
             detail += f" · wrote in {signals.detected_language}, the chat keeps {signals.language}"
         by = signals.by or self.classifier.name
-        self.rec.add("intake.classifier", f"{by} · {detail}", "classified", started, versions=[f"classifier {by}"])
+        wording_version = f"intake questions v{wording.version}" if wording else "intake questions default"
+        self.rec.add("intake.classifier", f"{by} · {detail}", "classified", started, versions=[f"classifier {by}", wording_version])
         self.customer_text = guard.text
 
         counters = await self._count(signals, guard)

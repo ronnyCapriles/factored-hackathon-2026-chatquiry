@@ -49,7 +49,7 @@ class Signals:
 class IntakeClassifier(Protocol):
     name: str
 
-    async def classify(self, text: str, current_language: str, context: str | None = None) -> Signals: ...
+    async def classify(self, text: str, current_language: str, context: str | None = None, questions: dict | None = None) -> Signals: ...
 
 
 def plain(text: str) -> str:
@@ -117,7 +117,7 @@ class RulesClassifier:
 
     name = "rules-v1"
 
-    async def classify(self, text: str, current_language: str, context: str | None = None) -> Signals:
+    async def classify(self, text: str, current_language: str, context: str | None = None, questions: dict | None = None) -> Signals:
         t = plain(text)
         hits = {"pt": len(re.findall(PT_HINT, t)), "es": len(re.findall(ES_HINT, t)), "en": len(re.findall(EN_HINT, t))}
         top = max(hits.values())

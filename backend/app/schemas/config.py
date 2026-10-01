@@ -69,10 +69,31 @@ class IntakeSignalOut(Camel):
     threshold: float | None = None
 
 
+class IntakeQuestionsOut(Camel):
+    """The questions the intake classifier answers for every message, and the request that carries them."""
+
+    provider: str
+    model: str
+    endpoint: str
+    active: bool
+    fallback: str
+    questions: dict
+    is_default: bool
+    version: int | None = None
+    updated_by: str | None = None
+    updated_at: str | None = None
+    request: str
+
+
+class IntakeQuestionsIn(Camel):
+    questions: dict
+
+
 class IntakeOut(Camel):
     classifier: str
     guardrail: str
     signals: list[IntakeSignalOut]
+    questions: IntakeQuestionsOut
 
 
 class RoutingCondition(Camel):

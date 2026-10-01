@@ -90,3 +90,15 @@ async def test_english_is_served_and_other_languages_keep_the_conversation_langu
 async def test_the_keyword_fallback_reads_english():
     signals = await jev(lambda r: httpx.Response(500)).classify("help, I don't recognize a purchase with my card", "es")
     assert signals.language == "en" and signals.intent == "txn_dispute"
+
+
+async def test_workspace_wording_replaces_the_default_questions():
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["questions"] = json.loads(request.content)["questions"]
+        return httpx.Response(200, json={"answers": answers()})
+
+    wording = {**QUESTIONS, "closing": {"type": "noul", "instructions": "The customer says goodbye."}}
+    await jev(handler).classify("gracias, eso es todo", "es", questions=wording)
+    assert seen["questions"]["closing"]["instructions"] == "The customer says goodbye."

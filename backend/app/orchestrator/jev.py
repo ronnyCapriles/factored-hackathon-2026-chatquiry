@@ -55,6 +55,37 @@ QUESTIONS = {
 }
 
 RETRYABLE = {429, 529}
+MAX_INSTRUCTIONS = 1000
+MAX_CRITERION = 300
+
+
+def request_body(model: str, questions: dict, message: str, previous: str | None) -> dict:
+    """Exactly what is sent to TypeSafe for one customer message."""
+    return {"model": model, "state": {"assistant_previous_message": previous or "", "customer_message": message}, "questions": questions}
+
+
+def validate_questions(candidate: object) -> dict:
+    """Wording may change; the questions, their types and their choices may not, since routing reads them."""
+    if not isinstance(candidate, dict) or set(candidate) != set(QUESTIONS):
+        raise ValueError(f"the questions must be exactly: {', '.join(QUESTIONS)}")
+    clean: dict = {}
+    for key, default in QUESTIONS.items():
+        item = candidate[key]
+        if not isinstance(item, dict) or item.get("type") != default["type"]:
+            raise ValueError(f"{key} must keep the type {default['type']}")
+        instructions = item.get("instructions")
+        if not isinstance(instructions, str) or not instructions.strip() or len(instructions) > MAX_INSTRUCTIONS:
+            raise ValueError(f"{key} needs instructions of 1 to {MAX_INSTRUCTIONS} characters")
+        clean[key] = {"type": default["type"], "instructions": instructions.strip()}
+        if "criteria" in default:
+            criteria = item.get("criteria")
+            if not isinstance(criteria, dict) or set(criteria) != set(default["criteria"]):
+                raise ValueError(f"{key} must keep the choices: {', '.join(default['criteria'])}")
+            for choice, text in criteria.items():
+                if not isinstance(text, str) or not text.strip() or len(text) > MAX_CRITERION:
+                    raise ValueError(f"{key}.{choice} needs a description of 1 to {MAX_CRITERION} characters")
+            clean[key]["criteria"] = {choice: criteria[choice].strip() for choice in default["criteria"]}
+    return clean
 
 
 class JevClassifier:
@@ -70,10 +101,10 @@ class JevClassifier:
             transport=transport,
         )
 
-    async def classify(self, text: str, current_language: str, context: str | None = None) -> Signals:
+    async def classify(self, text: str, current_language: str, context: str | None = None, questions: dict | None = None) -> Signals:
         floor = await self.rules.classify(text, current_language)
         # Only the message, already masked by the guardrail, and the assistant's last line leave the bank.
-        payload = {"model": self.name, "state": {"assistant_previous_message": context or "", "customer_message": text}, "questions": QUESTIONS}
+        payload = request_body(self.name, questions or QUESTIONS, text, context)
         try:
             answers, model = await self._ask(payload)
             signals = _signals(answers, current_language, model)

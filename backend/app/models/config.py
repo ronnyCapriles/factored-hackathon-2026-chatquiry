@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Boolean, Integer, String
+from sqlalchemy import JSON, Boolean, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, Tenant, Timestamps
@@ -94,6 +94,20 @@ class IntakeSignal(Base, Tenant):
     kind: Mapped[str] = mapped_column(String(12))
     description: Mapped[Localized] = mapped_column(JSON)
     threshold: Mapped[float | None] = mapped_column()
+
+
+class ClassifierQuestions(Base, Tenant, Timestamps):
+    """The workspace's own wording of the intake questions. Without a row the defaults in code apply.
+
+    The seed never replaces it, so edits survive a restart.
+    """
+
+    __tablename__ = "classifier_questions"
+    __table_args__ = (UniqueConstraint("workspace_id"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    questions: Mapped[dict] = mapped_column(JSON)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    updated_by: Mapped[str | None] = mapped_column(String(80))
 
 
 class Channel(Base, Tenant):
