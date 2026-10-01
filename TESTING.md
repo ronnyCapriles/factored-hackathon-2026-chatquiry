@@ -88,7 +88,7 @@ Click **Chat de prueba**. Three columns:
   - **Juliana Catalina López Cárdenas** (Colombia, Spanish): has a transfer pending for days, past its deadline.
   - **Susana Pereyra Ruiz** (Argentina, Portuguese): has a purchase the bank's data flags as fraud.
   - Four more customers, each with its suggested message: a declined purchase (expired card), a reversed deposit, an unrecognized purchase the AI may dispute on its own (no fraud signal, under the limit), and one above the AI's limit that goes to a person without a dispute.
-- **Center: the customer's phone.** You write as the customer. The line on top says the assistant is an AI and that the customer can ask for a person. **Reiniciar** starts a new conversation (the old one stays in the database).
+- **Center: the customer's chat.** You write as the customer. The line on top says the assistant is an AI and that the customer can ask for a person; the chip next to **Reiniciar** shows the conversation's language (Spanish, Portuguese or English). **Reiniciar** starts a new conversation (the old one stays in the database). Picking another customer keeps each chat where you left it; reloading the page clears them all.
 - **Right: Qué está haciendo la IA.** One card per turn with **Estado**, **Departamento**, **Atiende** (the AI or the person), **Regla** (which routing rule matched), the signals, and every step with its time. These are execution records, not the model's hidden reasoning.
 
 Steps you will see in the inspector:
@@ -114,7 +114,7 @@ Timing: the first message after starting the API takes 3 to 6 seconds (connectio
 
 Run `docker compose exec api python -m app.reset` first if you want a clean inbox. Each scenario: pick the customer on the left, type the messages in order, compare with the expected result.
 
-Start each scenario in a fresh conversation (**Reiniciar**, or pick the customer again). The assistant remembers what happened earlier in the same conversation: two security strikes or two frustrated messages hand it to a person, so mixing scenarios changes the outcome.
+Start each scenario in a fresh conversation (**Reiniciar**). Picking the customer again keeps the earlier chat. The assistant remembers what happened earlier in the same conversation: two security strikes or two frustrated messages hand it to a person, so mixing scenarios changes the outcome.
 
 ### S1. Pending transfer within its deadline (resolved by the AI)
 
@@ -286,11 +286,11 @@ Every reply, resolution, hand-back and human-only action is recorded in **Audito
 
 Sign in as **Marco** (tab **Administrador**).
 
-- **Operación**: the KPI cards stay empty, with the badge "Sin datos aún · se llenan con la evaluación", until the evaluation harness runs (a later step). The alert **Esperan a una persona** counts conversations waiting for a person, and is live.
+- **Operación**: the KPI cards and **Conversaciones de la evaluación** fill from the last evaluation run (section 13). Each attempt opens with its transcript, checks and trace per turn, even after `app.reset`; while the conversation is still in the database it also links to **Conversaciones**. The alert **Esperan a una persona** counts conversations waiting for a person, and is live.
 - **Auditoría**: every sign-in, test chat, customer file opened, dispute, handoff and blocked message, with filters and pages. Actions are recorded in English (for example "Opened a dispute after the customer's yes", "Handed off to a person", "Blocked a message for security review").
 - **Conversaciones**: read-only (**Modo supervisión**).
 - **Configuración**:
-  - **Enrutamiento**: the rules in priority order (R-08 security risk, R-01 guardrail block, R-02 manipulation, R-04 insists on a person, R-06 upset customer, R-05 and R-07 departments, R-03 out of scope), and the intake signals with the classifier name `rules-v1`.
+  - **Enrutamiento**: the rules in priority order (R-08 security risk, R-01 guardrail block, R-02 manipulation, R-04 insists on a person, R-06 upset customer, R-05 and R-07 departments, R-03 out of scope), the intake signals, and the conversation counters the rules compare with `≥ 2`. **Clasificador de ingreso** shows the exact JSON request sent to Jev; **Editar preguntas** changes the wording of its questions (their keys, types and choices stay fixed), applies from the next message and is audited.
   - **Guardrails**: what the Bedrock guardrail filters, masks and blocks.
   - **Políticas**: the two policies with their parameters (24 h transfer window; disputes up to USD 500 and 120 days; fraud signal = `is_fraud` or score > 30).
   - The other pages: departments and teams, the AI profile (Lía, the only one), tools and permissions, integrations and users. Everything here is read-only. Create and edit forms open and validate, then show "Aún no implementado".
@@ -299,7 +299,6 @@ Sign in as **Marco** (tab **Administrador**).
 
 - **Bloquear tarjeta** is simulated: it is recorded, but no card system is called.
 - A bank connected through the API receives a person's replies by polling `GET /v1/conversations/{id}/messages`; there are no webhooks yet.
-- **Operación** KPIs stay empty until the evaluation harness exists.
 - The bank-facing API (`POST /v1/conversations`, API key plus a signed customer assertion) works and has automated tests. It will be exercised by the evaluation harness; there is no screen for it.
 - Mistral varies between runs: sometimes it asks "¿es esta?" before checking, sometimes it checks directly. The orchestrator sends it back when it asks before searching or stalls, but wording still changes from run to run.
 - Trace details are in English; handoff packets are in Spanish, the team's language.
@@ -371,7 +370,7 @@ docker compose exec api python -m app.reset      # scenarios that open disputes 
 cd eval && uv run cq-eval run                    # about 90 conversations, one at a time, 10 to 15 minutes
 ```
 
-It prints one line per run and a summary, and writes `eval/results/latest.json` (the **Operación** page shows it) and `docs/results.md` (the report). `--only <scenario id>` runs a single scenario; `--runs 1` runs each once.
+It prints one line per run and a summary, and writes `eval/results/latest.json` (the **Operación** page shows it, including every attempt's conversation) and `docs/results.md` (the report). `--only <scenario id>` runs a single scenario; `--runs 1` runs each once.
 
 A run that changes data (opening a dispute) takes its own customer from a pool the pipeline picks, so runs never interfere with each other. If a pool customer already has a dispute, the harness stops and asks for `app.reset`.
 
