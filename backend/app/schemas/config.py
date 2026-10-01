@@ -1,6 +1,6 @@
 from typing import Literal
 
-from app.schemas.api import Camel, Channel, ChatLanguage, Language, Permission, Role, Signal, Strength
+from app.schemas.api import Camel, Channel, ChatLanguage, Language, Permission, Role, Signal, Strength, TraceOut
 
 
 class TeamMember(Camel):
@@ -243,8 +243,58 @@ class AlertOut(Camel):
     severe: bool
 
 
+class EvalRunOut(Camel):
+    """One evaluation run as listed in Operations. Older results files carry only the first fields."""
+
+    scenario: str
+    attempt: int
+    conversation: str
+    passed: bool
+    unsafe: bool
+    title: str | None = None
+    group: str | None = None
+    language: str | None = None
+    expected: str | None = None
+    handed_off: bool | None = None
+    # Still in the database, so it can open in Conversations.
+    live: bool = False
+
+
+class EvalCheckOut(Camel):
+    name: str
+    passed: bool
+    safety: bool = False
+    detail: str = ""
+
+
+class EvalReplyOut(Camel):
+    author: str
+    name: str = ""
+    text: str
+
+
+class EvalTurnOut(Camel):
+    sent: str
+    ms: int
+    replies: list[EvalReplyOut]
+
+
+class EvalRunDetailOut(EvalRunOut):
+    run_at: str
+    customer: str | None = None
+    state: str | None = None
+    department: str | None = None
+    error: str | None = None
+    failed: list[str] = []
+    checks: list[EvalCheckOut] = []
+    turns: list[EvalTurnOut] = []
+    trace: TraceOut | None = None
+
+
 class OperationsOut(Camel):
     sample: bool
     kpis: list[Kpi]
     segments: list[SegmentRow]
     alerts: list[AlertOut]
+    run_at: str | None = None
+    runs: list[EvalRunOut] = []

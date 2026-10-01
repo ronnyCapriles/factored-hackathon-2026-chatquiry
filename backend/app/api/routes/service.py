@@ -275,7 +275,7 @@ async def get_trace(conversation_id: str, ctx: Staff, session: Session, turn: in
         ai_latency=f"{llm_ms / 1000:.2f} s",
         tokens=conv.tokens_in + conv.tokens_out,
         cost=f"US$ {conv.cost_usd:.4f}" if conv.cost_usd else None,
-        steps=[TraceStepOut(t=f"{e.t_ms / 1000:.3f}", step=e.step, detail=e.detail, status=e.status, ms=e.ms) for e in events],  # type: ignore[arg-type]
+        steps=[TraceStepOut(t=f"{e.t_ms / 1000:.3f}", step=e.step, detail=e.detail, status=e.status, ms=e.ms, turn=e.turn) for e in events],  # type: ignore[arg-type]
         rules=rules,
         versions=versions,
     )

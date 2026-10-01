@@ -237,6 +237,7 @@ class TraceStepOut(Camel):
     detail: str
     status: TraceStatus
     ms: int
+    turn: int | None = None
 
 
 class TraceOut(Camel):

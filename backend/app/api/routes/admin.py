@@ -36,6 +36,8 @@ from app.schemas.config import (
     ConfigOut,
     ConnectorOut,
     DepartmentOut,
+    EvalRunDetailOut,
+    EvalRunOut,
     GuardrailOut,
     IntakeOut,
     IntakeQuestionsIn,
@@ -246,14 +248,54 @@ async def get_config(ctx: Staff, session: Session) -> ConfigOut:
     )
 
 
+def _eval_results() -> dict | None:
+    path = get_settings().eval_results
+    return json.loads(path.read_text()) if path.exists() else None
+
+
+async def _live_ids(session: Session, ctx: RequestContext, ids: list[str]) -> set[str]:
+    if not ids:
+        return set()
+    rows = await session.scalars(select(Conversation.id).where(Conversation.workspace_id == ctx.workspace_id, Conversation.id.in_(ids)))
+    return set(rows)
+
+
+def _run_fields(row: dict) -> dict:
+    return {k: row.get(k) for k in ("scenario", "attempt", "conversation", "passed", "unsafe", "title", "group", "language", "expected", "handed_off")}
+
+
+@router.get("/operations/evaluation/{conversation_id}", response_model=EvalRunDetailOut)
+async def evaluation_run(conversation_id: str, ctx: Admin, session: Session) -> EvalRunDetailOut:
+    """One evaluation conversation as the harness recorded it, readable even after the database was reset."""
+    results = _eval_results() or {}
+    row = next((r for r in results.get("results", []) if r.get("conversation") == conversation_id), None)
+    if not row:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "not_found")
+    trace = row.get("trace")
+    return EvalRunDetailOut(
+        **_run_fields(row),
+        live=bool(await _live_ids(session, ctx, [conversation_id])),
+        run_at=results.get("run_at", ""),
+        customer=row.get("customer"),
+        state=row.get("state"),
+        department=row.get("department"),
+        error=row.get("error"),
+        failed=row.get("failed", []),
+        checks=row.get("checks", []),
+        turns=row.get("turns", []),
+        trace={**trace, "id": conversation_id, "conversationId": conversation_id} if trace else None,
+    )
+
+
 @router.get("/operations", response_model=OperationsOut)
 async def operations(ctx: Admin, session: Session) -> OperationsOut:
     loc = ctx.locale
     human_waiting = await session.scalar(
         select(func.count()).select_from(Conversation).where(Conversation.workspace_id == ctx.workspace_id, Conversation.state == "needs_human")
     )
-    path = get_settings().eval_results
-    results = json.loads(path.read_text()) if path.exists() else None
+    results = _eval_results()
+    rows = (results or {}).get("results", [])
+    live = await _live_ids(session, ctx, [r["conversation"] for r in rows if r.get("conversation")])
     kpi = (results or {}).get("kpis", {})
     keys = [("safe_resolution", True), ("containment", True), ("handoff_quality", True), ("unsafe", True), ("latency", False), ("cost", False)]
     return OperationsOut(
@@ -266,6 +308,8 @@ async def operations(ctx: Admin, session: Session) -> OperationsOut:
             AlertOut(id="no_human_reply", title=T(loc, "alert_no_human"), hint=T(loc, "alert_no_human_hint"), value=str(human_waiting or 0), severe=True),
             AlertOut(id="guardrail_blocks", title=T(loc, "alert_guardrail"), hint=T(loc, "alert_guardrail_hint"), value=None, severe=False),
         ],
+        run_at=(results or {}).get("run_at"),
+        runs=[EvalRunOut(**_run_fields(r), live=r.get("conversation") in live) for r in rows],
     )
 
 
