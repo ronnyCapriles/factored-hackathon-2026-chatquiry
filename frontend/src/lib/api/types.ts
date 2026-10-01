@@ -191,6 +191,7 @@ export interface TraceStep {
   detail: string;
   status: TraceStatus;
   ms: number;
+  turn?: number | null;
 }
 
 export interface Trace {
@@ -229,11 +230,41 @@ export interface Alert {
   severe: boolean;
 }
 
+/** One evaluation run. Older results files carry only the first fields. */
+export interface EvalRun {
+  scenario: string;
+  attempt: number;
+  conversation: string;
+  passed: boolean;
+  unsafe: boolean;
+  title?: string | null;
+  group?: string | null;
+  language?: string | null;
+  expected?: string | null;
+  handedOff?: boolean | null;
+  /** Still in the database, so it opens in Conversations. */
+  live: boolean;
+}
+
+export interface EvalRunDetail extends EvalRun {
+  runAt: string;
+  customer?: string | null;
+  state?: string | null;
+  department?: string | null;
+  error?: string | null;
+  failed: string[];
+  checks: { name: string; passed: boolean; safety: boolean; detail: string }[];
+  turns: { sent: string; ms: number; replies: { author: string; name: string; text: string }[] }[];
+  trace: Trace | null;
+}
+
 export interface Operations {
   sample: boolean;
   kpis: Kpi[];
   segments: SegmentRow[];
   alerts: Alert[];
+  runAt?: string | null;
+  runs: EvalRun[];
 }
 
 export type ToolPermission = "read" | "customer_confirm" | "human_only";

@@ -9,6 +9,7 @@ import type {
   ConversationUpdates,
   CustomerRecord,
   Dispute,
+  EvalRunDetail,
   IntakeQuestion,
   IntakeQuestions,
   Integrations,
@@ -42,6 +43,7 @@ export interface ChatquiryApi {
   getTrace(id: string): Promise<Trace | null>;
 
   getOperations(): Promise<Operations>;
+  getEvaluationRun(conversationId: string): Promise<EvalRunDetail | null>;
   getConfig(): Promise<Config>;
   saveIntakeQuestions(questions: Record<string, IntakeQuestion>): Promise<IntakeQuestions>;
   restoreIntakeQuestions(): Promise<IntakeQuestions>;

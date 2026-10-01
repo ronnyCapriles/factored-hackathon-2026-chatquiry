@@ -2,6 +2,8 @@ import Link from "next/link";
 import { StateBubble } from "@/components/brand/sign";
 import { Card, Label, PageTitle, ReadOnlyBadge, Table, Td, Th } from "@/components/ui";
 import { api } from "@/lib/api";
+import type { EvalRun } from "@/lib/api/types";
+import { fmt } from "@/i18n/config";
 import { getMessages } from "@/i18n/server";
 import { requireStaff } from "@/lib/session";
 
@@ -16,11 +18,28 @@ const ALERT_LINK: Record<string, string> = {
   cost_over: "/app/config/profiles",
 };
 
-export default async function OperationsPage() {
+const RUN_FILTERS = ["all", "failed", "person"] as const;
+type RunFilter = (typeof RUN_FILTERS)[number];
+
+function byScenario(runs: EvalRun[]) {
+  const groups = new Map<string, EvalRun[]>();
+  for (const r of runs) groups.set(r.scenario, [...(groups.get(r.scenario) ?? []), r]);
+  return [...groups.values()].map((attempts) => attempts.sort((a, b) => a.attempt - b.attempt));
+}
+
+export default async function OperationsPage({ searchParams }: PageProps<"/app/operations">) {
   await requireStaff("admin");
-  const [ops, counts, t] = await Promise.all([api().getOperations(), api().conversationCounts(), getMessages()]);
+  const [ops, counts, t, sp] = await Promise.all([api().getOperations(), api().conversationCounts(), getMessages(), searchParams]);
   const m = t.operations;
   const dash = (v: string | number | null | undefined) => v ?? "—";
+  const filter: RunFilter = RUN_FILTERS.includes(sp.runs as RunFilter) ? (sp.runs as RunFilter) : "all";
+  const scenarios = byScenario(ops.runs);
+  const matches = {
+    all: scenarios,
+    failed: scenarios.filter((g) => g.some((r) => !r.passed)),
+    person: scenarios.filter((g) => g[0].expected === "person"),
+  };
+  const shown = matches[filter];
 
   const live = [
     { state: "ai_attending" as const, label: m.liveAi, value: counts.ai, href: "/app/conversations?f=ai" },
@@ -103,6 +122,88 @@ export default async function OperationsPage() {
           ))}
         </Card>
       </div>
+
+      <section className="flex flex-col gap-3" aria-labelledby="runs">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex max-w-[760px] flex-col gap-1">
+            <h2 id="runs" className="etiqueta">{m.runs.title}</h2>
+            <p className="text-[14px] text-tinta-3">
+              {m.runs.lead}
+              {ops.runAt && <span className="text-muted"> {fmt(m.runs.runAt, { at: ops.runAt.replace("T", " ").slice(0, 16), n: ops.runs.length })}</span>}
+            </p>
+          </div>
+          <div className="flex gap-1 rounded-full bg-superficie p-1 ring-[1.5px] ring-linea" role="tablist">
+            {RUN_FILTERS.map((f) => (
+              <Link
+                key={f}
+                href={`?runs=${f}#runs`}
+                scroll={false}
+                role="tab"
+                aria-selected={filter === f}
+                className={`flex h-9 items-center rounded-full px-4 text-[13px] font-semibold ${filter === f ? "bg-tinta text-fondo" : "hover:bg-fondo"}`}
+              >
+                {m.runs[f]} · {matches[f].length}
+              </Link>
+            ))}
+          </div>
+        </div>
+        <Card className="px-6 py-3">
+          {ops.runs.length === 0 ? (
+            <p className="py-4 text-[14px] text-muted">{m.runs.empty}</p>
+          ) : shown.length === 0 ? (
+            <p className="py-4 text-[14px] text-muted">{m.runs.none}</p>
+          ) : (
+            <Table>
+              <thead>
+                <tr>
+                  <Th>{m.runs.scenario}</Th>
+                  <Th className="w-[110px]">{m.runs.language}</Th>
+                  <Th className="w-[170px]">{m.runs.expected}</Th>
+                  <Th className="w-[280px]">{m.runs.attempts}</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((attempts) => {
+                  const first = attempts[0];
+                  return (
+                    <tr key={first.scenario}>
+                      <Td>
+                        <span className="flex flex-col">
+                          <span className="font-semibold">{first.title ?? first.scenario}</span>
+                          {first.title && <span className="tabular text-[12px] text-muted">{first.scenario}</span>}
+                        </span>
+                      </Td>
+                      <Td>{first.language && first.language in t.languages ? t.languages[first.language as keyof typeof t.languages] : "—"}</Td>
+                      <Td>{first.expected === "person" ? m.runs.expectedPerson : first.expected === "ai" ? m.runs.expectedAi : "—"}</Td>
+                      <Td>
+                        <span className="flex flex-wrap gap-1.5">
+                          {attempts.map((r) => {
+                            const label = r.unsafe ? m.runs.unsafeTitle : r.passed ? m.runs.passedTitle : m.runs.failedTitle;
+                            return (
+                              <Link
+                                key={r.conversation}
+                                href={`/app/operations/evaluation/${r.conversation}`}
+                                title={`${fmt(label, { n: r.attempt })}${r.handedOff ? ` · ${m.runs.handedOff}` : ""}`}
+                                className={`inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-semibold hover:ring-2 hover:ring-tinta ${
+                                  r.passed ? "border-[1.5px] border-linea bg-fondo" : "bg-atencion"
+                                }`}
+                              >
+                                <span aria-hidden="true">{r.unsafe ? "!" : r.passed ? "✓" : "✗"}</span>#{r.attempt}
+                                {r.handedOff && <StateBubble state="with_human" size={16} />}
+                                <span className="sr-only">{fmt(label, { n: r.attempt })}</span>
+                              </Link>
+                            );
+                          })}
+                        </span>
+                      </Td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+          )}
+        </Card>
+      </section>
     </div>
   );
 }

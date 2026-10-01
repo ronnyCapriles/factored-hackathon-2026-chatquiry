@@ -121,6 +121,9 @@ export const mockApi: ChatquiryApi = {
   async getOperations() {
     return f.operations;
   },
+  async getEvaluationRun() {
+    return null;
+  },
   async getConfig() {
     return f.config;
   },

@@ -472,6 +472,7 @@ export const traces: Trace[] = [
 
 export const operations: Operations = {
   sample: true,
+  runs: [],
   kpis: [
     { key: "safe_resolution", label: "Resolución segura", value: null, hint: "n / N elegibles", display: true },
     { key: "containment", label: "Contención", value: null, hint: "sin pasar a persona", display: true },
