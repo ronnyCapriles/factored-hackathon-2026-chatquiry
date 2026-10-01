@@ -45,6 +45,7 @@ async def test_runs_are_listed_and_readable_without_the_database(client, admin, 
     ops = (await client.get("/v1/operations", headers=admin)).json()
     assert ops["runAt"] == RESULTS["run_at"] and [r["conversation"] for r in ops["runs"]] == ["CNV-EVAL0001", "CNV-EVAL0002"]
     assert ops["runs"][0]["live"] is False and ops["runs"][0]["title"] == "Pending transfer within its deadline"
+    assert ops["runs"][0]["firstMessage"] == "hice una transferencia" and ops["runs"][1]["firstMessage"] is None
 
     run = (await client.get("/v1/operations/evaluation/CNV-EVAL0001", headers=admin)).json()
     assert run["turns"][0]["replies"][0]["text"] == "Sigue pendiente." and run["trace"]["steps"][0]["step"] == "router"

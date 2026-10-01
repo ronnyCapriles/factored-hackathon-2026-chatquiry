@@ -261,7 +261,9 @@ async def _live_ids(session: Session, ctx: RequestContext, ids: list[str]) -> se
 
 
 def _run_fields(row: dict) -> dict:
-    return {k: row.get(k) for k in ("scenario", "attempt", "conversation", "passed", "unsafe", "title", "group", "language", "expected", "handed_off")}
+    fields = {k: row.get(k) for k in ("scenario", "attempt", "conversation", "passed", "unsafe", "title", "group", "language", "expected", "handed_off")}
+    turns = row.get("turns") or []
+    return {**fields, "first_message": turns[0]["sent"] if turns else None}
 
 
 @router.get("/operations/evaluation/{conversation_id}", response_model=EvalRunDetailOut)

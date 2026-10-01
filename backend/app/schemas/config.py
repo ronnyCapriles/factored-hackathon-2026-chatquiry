@@ -256,6 +256,7 @@ class EvalRunOut(Camel):
     language: str | None = None
     expected: str | None = None
     handed_off: bool | None = None
+    first_message: str | None = None
     # Still in the database, so it can open in Conversations.
     live: bool = False
 
