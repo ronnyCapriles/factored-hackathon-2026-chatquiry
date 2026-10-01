@@ -3,23 +3,12 @@ import { ButtonLink, Card, KeyValue, Label, Table, Td, Th } from "@/components/u
 import { BackLink } from "@/components/ui/back-link";
 import { getMessages } from "@/i18n/server";
 import { api } from "@/lib/api";
-import type { TraceStatus } from "@/lib/api/types";
+import { TRACE_STATUS_CLS } from "@/components/trace/steps";
 
 export async function generateMetadata({ params }: PageProps<"/app/traces/[id]">) {
   return { title: `${(await getMessages()).traces.title} ${(await params).id}` };
 }
 
-const STATUS_CLS: Record<TraceStatus, string> = {
-  allowed: "border-[1.5px] border-linea bg-fondo",
-  classified: "border-[1.5px] border-linea bg-fondo",
-  routed: "border-[1.5px] border-linea bg-fondo",
-  ok: "border-[1.5px] border-linea bg-fondo",
-  decision: "bg-marca",
-  pending: "border-[1.5px] border-dashed border-punto bg-fondo",
-  verified: "bg-tinta text-fondo",
-  escalated: "bg-atencion",
-  blocked: "bg-atencion",
-};
 
 export default async function TracePage({ params }: PageProps<"/app/traces/[id]">) {
   const { id } = await params;
@@ -70,7 +59,7 @@ export default async function TracePage({ params }: PageProps<"/app/traces/[id]"
                   <Td className="tabular font-bold">{s.step}</Td>
                   <Td>{s.detail}</Td>
                   <Td>
-                    <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[13px] font-semibold ${STATUS_CLS[s.status]}`}>{x.status[s.status]}</span>
+                    <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[13px] font-semibold ${TRACE_STATUS_CLS[s.status]}`}>{x.status[s.status]}</span>
                   </Td>
                   <Td align="right" className="tabular">{s.ms.toLocaleString()}</Td>
                 </tr>
