@@ -1,6 +1,6 @@
 from typing import Literal
 
-from app.schemas.api import Camel, Channel, Language, Permission, Role, Signal, Strength
+from app.schemas.api import Camel, Channel, ChatLanguage, Language, Permission, Role, Signal, Strength
 
 
 class TeamMember(Camel):
@@ -125,7 +125,7 @@ class GuardrailOut(Camel):
     denied_topics: list[DeniedTopic]
     word_filters: list[str]
     grounding_threshold: float
-    blocked_message: dict[Language, str]
+    blocked_message: dict[ChatLanguage, str]
 
 
 class PolicyOutcome(Camel):

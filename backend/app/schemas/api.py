@@ -6,6 +6,8 @@ from pydantic.alias_generators import to_camel
 ConversationState = Literal["ai_attending", "waiting_customer", "with_human", "needs_human", "resolved"]
 Channel = Literal["whatsapp", "widget", "api", "test_chat"]
 Language = Literal["es", "pt"]
+# A conversation can switch to English when the customer writes in it; customers' preferred language stays es or pt.
+ChatLanguage = Literal["es", "pt", "en"]
 Role = Literal["agent", "admin"]
 TraceStatus = Literal["allowed", "classified", "routed", "ok", "decision", "pending", "verified", "escalated", "blocked"]
 Permission = Literal["read", "customer_confirm", "human_only"]
@@ -92,7 +94,7 @@ class ConversationSummary(Camel):
     customer_id: str
     customer_name: str
     customer_initials: str
-    language: Language
+    language: ChatLanguage
     channel: Channel
     state: ConversationState
     last_message: str

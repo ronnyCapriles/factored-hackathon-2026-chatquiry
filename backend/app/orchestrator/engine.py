@@ -162,6 +162,8 @@ class Orchestrator:
         conversation.language = signals.language
         self.lang = signals.language
         detail = " · ".join(f"{s['name']}={s['value']}" + (f" ({s['confidence']})" if s.get("confidence") else "") for s in signals.as_list())
+        if signals.detected_language and signals.detected_language != signals.language:
+            detail += f" · wrote in {signals.detected_language}, the chat keeps {signals.language}"
         by = signals.by or self.classifier.name
         self.rec.add("intake.classifier", f"{by} · {detail}", "classified", started, versions=[f"classifier {by}"])
         self.customer_text = guard.text

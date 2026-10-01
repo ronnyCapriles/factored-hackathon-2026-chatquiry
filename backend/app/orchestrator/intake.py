@@ -22,6 +22,8 @@ class Signals:
     frustration: float
     closing: bool = False
     identity_doubt: bool = False
+    # What the classifier read before falling back to a language the chat serves.
+    detected_language: str = ""
     # Which model or rule set produced these signals, for the trace.
     by: str = ""
 
@@ -76,11 +78,13 @@ HUMAN = (
     r"(persona|humano|agente|asesor|ejecutivo|alguien|supervisor|supervisora|gerente|encargad|operador)|"
     r"(falar|fala|passar|me passa|atenda|atender) (com|para|me) ?(uma |um |o |a )?(pessoa|humano|atendente|agente|alguem|supervisor|gerente)|"
     r"persona real|pessoa de verdade|alguien mas|otra persona|alguem mais|outra pessoa|"
-    r"quiero (un|una|al|a un) (asesor|agente|humano|supervisor|gerente|persona)|quero (um|uma|o) (atendente|humano|supervisor|gerente|pessoa)"
+    r"quiero (un|una|al|a un) (asesor|agente|humano|supervisor|gerente|persona)|quero (um|uma|o) (atendente|humano|supervisor|gerente|pessoa)|"
+    r"(talk|speak) (to|with) (a |an |the )?(person|human|agent|supervisor|manager|someone)|real person"
 )
 DISPUTE = (
     r"no reconozco|nao reconheco|no (la |lo )?hice|nao fiz|no fui yo|nao fui eu|fraude|cobro raro|cargo raro|compra rara|compra estranha|"
-    r"no autorice|nao autorizei|me robaron|clonaron|clonado|disputa|contestar|contestacao|desconozco|desconheco|cobro que no|cobranca que nao"
+    r"no autorice|nao autorizei|me robaron|clonaron|clonado|disputa|contestar|contestacao|desconozco|desconheco|cobro que no|cobranca que nao|"
+    r"(don'?t|do not) recogni[sz]e|didn'?t make|not mine|\bfraud\b|\bdispute\b"
 )
 STATUS = (
     r"transferencia|transferi|transfer|transacc|transac|no (me )?(ha )?(llega|llegado)|no llego|nada que llega|nao chegou|nao caiu|pendiente|pendente|"
@@ -100,8 +104,12 @@ FRUSTRATION = (
 )
 CLOSING = r"^(muchas )?gracias|^obrigad|^valeu|^listo|^perfecto|^perfeito|eso es todo|era isso|nada mas|^chau|^tchau|^adios|^ok,? gracias"
 
+# Languages the chat replies in; anything else keeps the conversation's language.
+LANGUAGES = ("es", "pt", "en")
+
 PT_HINT = r"\bnao\b|voce|obrigad|reconheco|cartao|\bola\b|\boi\b|\bsim\b|ontem|\besta\b|\bconta\b|\bisso\b|minha|\bmeu\b|cao\b|\bpode\b|\bquero\b|\bda\b|\bdo\b"
 ES_HINT = r"\bno\b|usted|gracias|reconozco|tarjeta|hola|\bsi\b|ayer|cuenta|pueden|quiero|\bmi\b|cion\b|\bel\b|\bla\b|\bdel\b|\bpor\b|\bllega\b|\bhice\b"
+EN_HINT = r"\bthe\b|\byou\b|\bmy\b|\bi\b|\bcan\b|\bhelp\b|\bplease\b|\bthanks?\b|\bdon'?t\b|\bwhat\b|\bwhy\b|\bhello\b|\bhi\b|\bpurchase\b|\byesterday\b"
 
 
 class RulesClassifier:
@@ -111,8 +119,10 @@ class RulesClassifier:
 
     async def classify(self, text: str, current_language: str, context: str | None = None) -> Signals:
         t = plain(text)
-        pt, es = len(re.findall(PT_HINT, t)), len(re.findall(ES_HINT, t))
-        language = "pt" if pt > es else "es" if es > pt else current_language
+        hits = {"pt": len(re.findall(PT_HINT, t)), "es": len(re.findall(ES_HINT, t)), "en": len(re.findall(EN_HINT, t))}
+        top = max(hits.values())
+        leaders = [lang for lang, n in hits.items() if n == top]
+        language = leaders[0] if top and len(leaders) == 1 else current_language
 
         if _any(DISPUTE, t):
             intent, confidence = "txn_dispute", 0.9

@@ -5,7 +5,7 @@ import logging
 
 import httpx
 
-from app.orchestrator.intake import RulesClassifier, Signals
+from app.orchestrator.intake import LANGUAGES, RulesClassifier, Signals
 
 log = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ QUESTIONS = {
     "language": {
         "type": "choice",
         "instructions": "Language the customer wrote customer_message in.",
-        "criteria": {"es": "Spanish", "pt": "Portuguese", "other": "Any other language"},
+        "criteria": {"es": "Spanish", "pt": "Portuguese", "en": "English", "other": "Any other language"},
     },
     "intent": {
         "type": "choice",
@@ -108,7 +108,7 @@ def _signals(answers: dict, current_language: str, model: str) -> Signals:
     # The engine counts 0.7 and above as frustration and 0.9 and above as strong.
     frustration = 0.95 if furious >= 0.5 else min(frustrated, 0.89)
     return Signals(
-        language=language if language in ("es", "pt") else current_language,
+        language=language if language in LANGUAGES else current_language,
         intent=intent["choice"],
         intent_confidence=float(intent.get("confidence") or intent["probabilities"][intent["choice"]]),
         injection_risk=yes("manipulation"),
@@ -116,5 +116,6 @@ def _signals(answers: dict, current_language: str, model: str) -> Signals:
         frustration=frustration,
         closing=intent["choice"] == "other" and yes("closing") >= 0.5,
         identity_doubt=yes("not_holder") >= 0.5,
+        detected_language=language,
         by=model,
     )

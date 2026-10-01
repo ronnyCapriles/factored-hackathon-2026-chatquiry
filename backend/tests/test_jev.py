@@ -75,3 +75,18 @@ async def test_an_overloaded_service_is_retried_once_then_falls_back_to_rules():
 async def test_a_malformed_answer_falls_back_to_rules():
     signals = await jev(lambda r: httpx.Response(200, json={"answers": {"language": {}}})).classify("quiero hablar con un supervisor", "es")
     assert signals.needs_human >= 0.62 and signals.by.startswith("rules-v1 (fallback")
+
+
+async def test_english_is_served_and_other_languages_keep_the_conversation_language():
+    english = answers(language={"type": "choice", "choice": "en", "probabilities": {"en": 0.96}, "confidence": 0.96})
+    signals = await jev(lambda r: httpx.Response(200, json={"answers": english})).classify("can you answer in english", "es")
+    assert signals.language == "en"
+
+    french = answers(language={"type": "choice", "choice": "other", "probabilities": {"other": 0.9}, "confidence": 0.9})
+    signals = await jev(lambda r: httpx.Response(200, json={"answers": french})).classify("je ne reconnais pas un achat", "pt")
+    assert signals.language == "pt" and signals.detected_language == "other"
+
+
+async def test_the_keyword_fallback_reads_english():
+    signals = await jev(lambda r: httpx.Response(500)).classify("help, I don't recognize a purchase with my card", "es")
+    assert signals.language == "en" and signals.intent == "txn_dispute"

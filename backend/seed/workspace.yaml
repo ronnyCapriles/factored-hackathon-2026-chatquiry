@@ -243,7 +243,7 @@ tools:
         reissue: { type: boolean }
 
 signals:
-  - { name: language, kind: choice, description: { es: "Idioma del mensaje: es · pt · otro", en: "Message language: es · pt · other", pt: "Idioma da mensagem: es · pt · outro" } }
+  - { name: language, kind: choice, description: { es: "Idioma del mensaje: es · pt · en; otro idioma conserva el de la conversación", en: "Message language: es · pt · en; any other keeps the conversation's", pt: "Idioma da mensagem: es · pt · en; outro idioma mantém o da conversa" } }
   - { name: intent, kind: choice, description: { es: "txn_status · txn_dispute · card · credit · otro", en: "txn_status · txn_dispute · card · credit · other", pt: "txn_status · txn_dispute · card · credit · outro" } }
   - { name: injection_risk, kind: probability, threshold: 0.8, description: { es: Intento de manipular al asistente, en: Attempt to manipulate the assistant, pt: Tentativa de manipular o assistente } }
   - { name: needs_human, kind: probability, threshold: 0.62, description: { es: El caso requiere criterio humano, en: The case needs human judgment, pt: O caso exige critério humano } }
@@ -331,6 +331,7 @@ guardrail:
     blocked_message:
       es: No puedo ayudarte con eso por aquí. ¿Hay algo de tus movimientos que quieras revisar?
       pt: Não consigo ajudar com isso por aqui. Tem algo nas suas movimentações que você quer revisar?
+      en: I can't help with that here. Is there anything in your transactions you'd like to check?
     routing_examples:
       - message: Não reconheço uma compra de ontem no meu cartão
         language: pt

@@ -13,14 +13,17 @@ SUGGESTIONS = {
     "fraud": {
         "es": "Hola, {first}, soy {agent}. Ya revisé lo que conversaste. ¿Tu tarjeta sigue contigo?",
         "pt": "Oi, {first}, aqui é {agent}. Já li a conversa. Seu cartão ainda está com você?",
+        "en": "Hi {first}, this is {agent}. I've read the conversation. Do you still have your card?",
     },
     "transfer": {
         "es": "Hola, {first}, soy {agent}. Ya estoy revisando tu transferencia con el banco de destino y te escribo por aquí.",
         "pt": "Oi, {first}, aqui é {agent}. Já estou verificando sua transferência com o banco de destino e te escrevo por aqui.",
+        "en": "Hi {first}, this is {agent}. I'm already checking your transfer with the receiving bank and will write to you here.",
     },
     "general": {
         "es": "Hola, {first}, soy {agent}. Ya leí la conversación. ¿Me cuentas si hay algo más que deba saber?",
         "pt": "Oi, {first}, aqui é {agent}. Já li a conversa. Tem mais alguma coisa que eu deva saber?",
+        "en": "Hi {first}, this is {agent}. I've read the conversation. Is there anything else I should know?",
     },
 }
 
