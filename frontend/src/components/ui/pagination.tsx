@@ -9,19 +9,22 @@ export async function Pagination({
   total,
   params,
   basePath,
+  anchor,
 }: {
   page: number;
   pageSize: number;
   total: number;
   params: Record<string, string | undefined>;
   basePath: string;
+  /** Element id to land on, so paging a section lower on the page keeps it in view. */
+  anchor?: string;
 }) {
   const t = await getMessages();
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const href = (p: number) => {
     const q = new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => !!e[1]));
     q.set("page", String(p));
-    return `${basePath}?${q.toString()}`;
+    return `${basePath}?${q.toString()}${anchor ? `#${anchor}` : ""}`;
   };
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);

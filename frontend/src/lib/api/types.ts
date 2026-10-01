@@ -242,6 +242,7 @@ export interface EvalRun {
   language?: string | null;
   expected?: string | null;
   handedOff?: boolean | null;
+  firstMessage?: string | null;
   /** Still in the database, so it opens in Conversations. */
   live: boolean;
 }
