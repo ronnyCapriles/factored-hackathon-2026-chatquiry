@@ -15,8 +15,9 @@ export async function generateMetadata({ params }: PageProps<"/app/operations/ev
 export default async function EvaluationRunPage({ params }: PageProps<"/app/operations/evaluation/[id]">) {
   await requireStaff("admin");
   const { id } = await params;
-  const [run, t] = await Promise.all([api().getEvaluationRun(id), getMessages()]);
+  const [run, t, cfg] = await Promise.all([api().getEvaluationRun(id), getMessages(), api().getConfig()]);
   if (!run) notFound();
+  const department = cfg.departments.find((d) => d.id === run.department)?.name ?? run.department;
   const m = t.operations.run;
   const steps = run.trace?.steps ?? [];
   // Older traces have no turn numbers; their steps are listed once at the end.
@@ -113,7 +114,7 @@ export default async function EvaluationRunPage({ params }: PageProps<"/app/oper
               <Label>{m.summary}</Label>
               {run.customer && <KeyValue k={m.customer} v={run.customer} />}
               {state && <KeyValue k={m.finalState} v={state} />}
-              {run.department && <KeyValue k={m.department} v={run.department} />}
+              {department && <KeyValue k={m.department} v={department} />}
               {run.handedOff != null && <KeyValue k={m.handedOff} v={run.handedOff ? t.common.yes : t.common.no} />}
               {run.trace && <KeyValue k={m.latency} v={run.trace.aiLatency} />}
               {run.trace && <KeyValue k={m.tokens} v={run.trace.tokens.toLocaleString()} />}
