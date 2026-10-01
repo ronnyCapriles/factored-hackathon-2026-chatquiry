@@ -5,7 +5,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { LOCALE_COOKIE, THEME_COOKIE, isLocale, isTheme } from "@/i18n/config";
 import { api } from "./api";
-import type { Availability, Message, ProfileUpdate } from "./api/types";
+import { ApiError } from "./api/live";
+import type { Availability, IntakeQuestion, Message, ProfileUpdate } from "./api/types";
 import { createStaffSession, destroyStaffSession, homeFor, requireStaff, safeNext } from "./session";
 
 /** Errors are catalog keys so the client shows them in the user's language. */
@@ -105,4 +106,24 @@ export async function runHumanAction(conversationId: string, actionId: string) {
   await requireStaff("agent");
   await api().runHumanAction(conversationId, actionId);
   revalidatePath("/app/conversations");
+}
+
+/** Admin only. A rejected wording comes back as the API's reason, so the editor can show it. */
+export async function saveIntakeQuestions(questions: Record<string, IntakeQuestion>): Promise<FormState> {
+  await requireStaff("admin");
+  try {
+    await api().saveIntakeQuestions(questions);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 422) return { error: e.code };
+    throw e;
+  }
+  revalidatePath("/app/config", "layout");
+  return { ok: true };
+}
+
+export async function restoreIntakeQuestions(): Promise<FormState> {
+  await requireStaff("admin");
+  await api().restoreIntakeQuestions();
+  revalidatePath("/app/config", "layout");
+  return { ok: true };
 }

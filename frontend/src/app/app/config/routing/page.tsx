@@ -1,6 +1,7 @@
 import { StateBubble } from "@/components/brand/sign";
 import { DeleteButton, EntityFormButton, PendingIcon } from "@/components/crud";
 import { ruleFields } from "@/components/crud/forms";
+import { IntakeQuestionsCard } from "@/components/config/intake-questions";
 import { ACTION_STATE, ConfigHeader, SectionTitle, ThresholdBar } from "@/components/config/parts";
 import { Card } from "@/components/ui";
 import { fmt } from "@/i18n/config";
@@ -15,6 +16,8 @@ export default async function RoutingPage() {
   const [cfg, t] = await Promise.all([api().getConfig(), getMessages()]);
   const m = t.routing;
   const fields = ruleFields(t, cfg.departments.filter((d) => d.id !== "DEP-INTAKE").map((d) => d.name).concat(t.departments.security));
+  const thresholds = Object.fromEntries(cfg.intake.signals.filter((s) => typeof s.threshold === "number").map((s) => [s.name, s.threshold!.toFixed(2)]));
+  const counters = ["security_strikes", "frustration_hits", "human_requests"] as const;
 
   return (
     <>
@@ -71,7 +74,13 @@ export default async function RoutingPage() {
           <li className="rounded-tarjeta border-[1.5px] border-dashed border-punto px-5 py-4 text-[14px] text-tinta-3">{m.fallback}</li>
         </ol>
 
-        <div className="sticky top-7 flex flex-col gap-5">
+        <div className="flex flex-col gap-5">
+          <Card className="flex scroll-mt-6 flex-col gap-3 p-6">
+            <span id="intake" className="scroll-mt-6">
+              <SectionTitle>{m.jev.section}</SectionTitle>
+            </span>
+            <IntakeQuestionsCard intake={cfg.intake.questions} thresholds={thresholds} />
+          </Card>
           <Card className="flex flex-col gap-3 p-6">
             <SectionTitle>{m.signals}</SectionTitle>
             {cfg.intake.signals.map((s) => (
@@ -84,6 +93,23 @@ export default async function RoutingPage() {
               </div>
             ))}
             <span className="text-[12px] text-muted">{m.thresholdsNote}</span>
+          </Card>
+          <Card className="flex flex-col gap-3 p-6">
+            <SectionTitle>{m.counters.title}</SectionTitle>
+            <p className="text-[13px] leading-snug text-tinta-3">{m.counters.lead}</p>
+            {counters.map((c) => (
+              <div key={c} className="flex flex-col gap-1 border-b border-linea-2 pb-3 last:border-0 last:pb-0">
+                <span className="flex items-center justify-between gap-3">
+                  <span className="tabular text-[14px] font-bold">{c}</span>
+                  <span className="text-[12px] text-muted">{t.config.counter}</span>
+                </span>
+                <span className="text-[13px] text-tinta-3">{fmt(m.counters[c], thresholds)}</span>
+              </div>
+            ))}
+            <div className="flex flex-col gap-1">
+              <span className="tabular text-[14px] font-bold">guardrail</span>
+              <span className="text-[13px] text-tinta-3">{m.counters.guardrail}</span>
+            </div>
           </Card>
         </div>
       </div>

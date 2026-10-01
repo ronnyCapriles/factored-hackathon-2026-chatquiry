@@ -124,6 +124,21 @@ export const mockApi: ChatquiryApi = {
   async getConfig() {
     return f.config;
   },
+  async saveIntakeQuestions(questions) {
+    const current = f.config.intake.questions;
+    f.config.intake.questions = {
+      ...current,
+      questions,
+      isDefault: false,
+      version: (current.version ?? 0) + 1,
+      updatedBy: "Marco Vidal",
+      request: f.intakeRequest(questions),
+    };
+    return f.config.intake.questions;
+  },
+  async restoreIntakeQuestions() {
+    return { ...(await mockApi.saveIntakeQuestions(f.intakeQuestions)), isDefault: true };
+  },
   async listAudit(query) {
     const q = query.q?.toLowerCase();
     const rows = f.audit.filter(

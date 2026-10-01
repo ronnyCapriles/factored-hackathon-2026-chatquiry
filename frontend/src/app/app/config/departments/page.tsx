@@ -62,6 +62,9 @@ export default async function DepartmentsPage() {
               <span className="font-bold">{d.intakeFast}</span>
               <span className="text-[13px] opacity-90">{cfg.intake.guardrail}</span>
               <span className="text-[13px] opacity-90">{cfg.intake.classifier}</span>
+              <Link href="/app/config/routing#intake" className="text-[13px] font-semibold underline underline-offset-4">
+                {t.routing.jev.seeRequest}
+              </Link>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {cfg.intake.signals.map((s) => (
                   <span key={s.name} className="tabular rounded-full bg-panel-2 px-2 py-0.5 text-[12px]">{s.name}</span>

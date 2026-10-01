@@ -13,6 +13,7 @@ import type {
   ConversationUpdates,
   CustomerRecord,
   Dispute,
+  IntakeQuestions,
   Integrations,
   Message,
   Operations,
@@ -102,6 +103,8 @@ export function liveApi(explicitToken?: string): ChatquiryApi {
 
     getOperations: () => call<Operations>("/v1/operations"),
     getConfig: () => call<Config>("/v1/config"),
+    saveIntakeQuestions: (questions) => call<IntakeQuestions>("/v1/config/intake/questions", { method: "PUT", body: JSON.stringify({ questions }) }),
+    restoreIntakeQuestions: () => call<IntakeQuestions>("/v1/config/intake/questions", { method: "DELETE" }),
     listAudit(query) {
       const params = new URLSearchParams();
       for (const [k, v] of Object.entries(query)) if (v !== undefined && v !== "") params.set(k, String(v));

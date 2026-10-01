@@ -388,7 +388,8 @@
       "human_onlyHint": "No AI has it; only the agent's copilot."
     },
     "action": { "block": "Block", "human": "To a person", "abstain": "Abstain", "route": "Route to AI" },
-    "category": "category"
+    "category": "category",
+    "counter": "counter"
   },
   "departments": {
     "title": "Map and departments",
@@ -491,7 +492,7 @@
     "ordered": "Rules in priority order",
     "if": "IF",
     "and": "AND",
-    "fallback": "If no rule matches, the assistant asks the customer to clarify instead of guessing.",
+    "fallback": "If no rule matches, the conversation stays in its current department and the assistant replies with the context it already has.",
     "signals": "Intake filter signals",
     "thresholdsNote": "Thresholds chosen on validation to avoid missing necessary handoffs.",
     "examples": "How it decides · examples from the test chat",
@@ -507,7 +508,53 @@
     "saveAction": "Save rule",
     "deleteTitle": "Delete rule?",
     "deleteAction": "Delete rule",
-    "deleteConsequence": "Messages that matched will fall through to the next rule in order."
+    "deleteConsequence": "Messages that matched will fall through to the next rule in order.",
+    "counters": {
+      "title": "Conversation counters",
+      "lead": "They add up over the conversation and never go down. Rules compare them with a whole number: with ≥ 2, one doubtful message is not enough, but one strong signal or two in a row are.",
+      "security_strikes": "+1 for a manipulation attempt or a blocked attack; +2 when they say they are not the account holder.",
+      "frustration_hits": "+1 when frustration ≥ {frustration}; +2 when ≥ 0.90.",
+      "human_requests": "+1 each time needs_human ≥ {needs_human}.",
+      "guardrail": "blocked or allowed. Bedrock Guardrails decides it before the classifier."
+    },
+    "jev": {
+      "section": "Intake classifier",
+      "title": "Intake classifier questions",
+      "lead": "Each customer message, already masked by the guardrail, travels with the assistant's last line and these questions. The classifier answers with probabilities, not text; rules read the signals built from them.",
+      "active": "Active",
+      "fallback": "Fallback: {name}",
+      "summary": "{n} questions per message.",
+      "defaultWording": "Default wording.",
+      "customWording": "Wording v{v} · {who} · {at}.",
+      "seeRequest": "See the request",
+      "edit": "Edit questions",
+      "tabs": {
+        "questions": "Questions",
+        "request": "JSON request"
+      },
+      "shapeNote": "You can change the wording. The questions, their types and their choices are fixed because routing reads them.",
+      "instructionsFor": "Instructions for {key}",
+      "feeds": {
+        "language": "→ language. Anything other than es, pt or en keeps the conversation's language.",
+        "intent": "→ intent and its confidence.",
+        "manipulation": "→ injection_risk. At {injection_risk} or more it adds 1 to security_strikes.",
+        "not_holder": "At 0.50 or more it adds 2 to security_strikes: enough on its own to go to security.",
+        "wants_person": "→ needs_human. At {needs_human} or more it adds 1 to human_requests.",
+        "frustrated": "→ frustration, up to 0.89. At {frustration} or more it adds 1 to frustration_hits.",
+        "furious": "At 0.50 or more, frustration becomes 0.95 and adds 2 to frustration_hits.",
+        "closing": "At 0.50 or more with intent = other, the conversation is resolved."
+      },
+      "requestNote": "Example with a test message. Only the masked message and the assistant's last line leave the bank.",
+      "copy": "Copy",
+      "copied": "Request copied",
+      "save": "Save wording",
+      "saving": "Saving…",
+      "saved": "Wording saved. It applies from the next message.",
+      "restore": "Restore the default",
+      "restored": "Default wording restored",
+      "failed": "Could not save",
+      "rejected": "The API rejected the change: {reason}"
+    }
   },
   "guardrails": {
     "title": "Guardrails",

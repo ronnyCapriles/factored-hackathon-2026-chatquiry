@@ -305,10 +305,32 @@ export interface IntakeSignal {
   threshold?: number;
 }
 
+export interface IntakeQuestion {
+  type: "choice" | "noul";
+  instructions: string;
+  criteria?: Record<string, string>;
+}
+
+/** The questions the intake classifier answers for every customer message, and the request that carries them. */
+export interface IntakeQuestions {
+  provider: string;
+  model: string;
+  endpoint: string;
+  active: boolean;
+  fallback: string;
+  questions: Record<string, IntakeQuestion>;
+  isDefault: boolean;
+  version?: number | null;
+  updatedBy?: string | null;
+  updatedAt?: string | null;
+  request: string;
+}
+
 export interface IntakeFilter {
   classifier: string;
   guardrail: string;
   signals: IntakeSignal[];
+  questions: IntakeQuestions;
 }
 
 export interface RoutingCondition {

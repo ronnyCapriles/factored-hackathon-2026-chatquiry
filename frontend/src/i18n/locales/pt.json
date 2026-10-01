@@ -388,7 +388,8 @@
       "human_onlyHint": "Nenhuma IA tem; só o copiloto do agente."
     },
     "action": { "block": "Bloquear", "human": "Para pessoa", "abstain": "Abster-se", "route": "Rotear para IA" },
-    "category": "categoria"
+    "category": "categoria",
+    "counter": "contador"
   },
   "departments": {
     "title": "Mapa e departamentos",
@@ -491,7 +492,7 @@
     "ordered": "Regras em ordem de prioridade",
     "if": "SE",
     "and": "E",
-    "fallback": "Se nenhuma regra corresponder, o assistente pede um esclarecimento ao cliente em vez de adivinhar.",
+    "fallback": "Se nenhuma regra corresponder, a conversa continua no departamento atual e o assistente responde com o contexto que já tem.",
     "signals": "Sinais do filtro de entrada",
     "thresholdsNote": "Limiares escolhidos na validação para não perder transferências necessárias.",
     "examples": "Como decide · exemplos do chat de teste",
@@ -507,7 +508,53 @@
     "saveAction": "Salvar regra",
     "deleteTitle": "Excluir regra?",
     "deleteAction": "Excluir regra",
-    "deleteConsequence": "As mensagens que correspondiam passarão para a próxima regra na ordem."
+    "deleteConsequence": "As mensagens que correspondiam passarão para a próxima regra na ordem.",
+    "counters": {
+      "title": "Contadores da conversa",
+      "lead": "Somam ao longo da conversa e nunca diminuem. As regras os comparam com um número inteiro: com ≥ 2, uma única mensagem duvidosa não basta, mas um sinal forte ou dois seguidos sim.",
+      "security_strikes": "+1 por tentativa de manipulação ou ataque bloqueado; +2 se disser que não é o titular.",
+      "frustration_hits": "+1 quando frustration ≥ {frustration}; +2 quando ≥ 0.90.",
+      "human_requests": "+1 cada vez que needs_human ≥ {needs_human}.",
+      "guardrail": "blocked ou allowed. O Bedrock Guardrails decide antes do classificador."
+    },
+    "jev": {
+      "section": "Classificador de entrada",
+      "title": "Perguntas ao classificador de entrada",
+      "lead": "Cada mensagem do cliente, já mascarada pelo guardrail, segue com a última linha do assistente e estas perguntas. O classificador responde probabilidades, não texto; as regras leem os sinais que saem delas.",
+      "active": "Ativo",
+      "fallback": "Reserva: {name}",
+      "summary": "{n} perguntas por mensagem.",
+      "defaultWording": "Redação padrão.",
+      "customWording": "Redação v{v} · {who} · {at}.",
+      "seeRequest": "Ver a requisição",
+      "edit": "Editar perguntas",
+      "tabs": {
+        "questions": "Perguntas",
+        "request": "Requisição JSON"
+      },
+      "shapeNote": "Você pode mudar a redação. As perguntas, seus tipos e suas opções são fixos porque o roteamento os lê.",
+      "instructionsFor": "Instruções de {key}",
+      "feeds": {
+        "language": "→ language. Se não for es, pt nem en, a conversa mantém o idioma.",
+        "intent": "→ intent e sua confiança.",
+        "manipulation": "→ injection_risk. Com {injection_risk} ou mais soma 1 a security_strikes.",
+        "not_holder": "Com 0.50 ou mais soma 2 a security_strikes: basta para passar à segurança.",
+        "wants_person": "→ needs_human. Com {needs_human} ou mais soma 1 a human_requests.",
+        "frustrated": "→ frustration, até 0.89. Com {frustration} ou mais soma 1 a frustration_hits.",
+        "furious": "Com 0.50 ou mais, frustration vai a 0.95 e soma 2 a frustration_hits.",
+        "closing": "Com 0.50 ou mais e intent = other, a conversa fica resolvida."
+      },
+      "requestNote": "Exemplo com uma mensagem de teste. Do banco só saem a mensagem mascarada e a última linha do assistente.",
+      "copy": "Copiar",
+      "copied": "Requisição copiada",
+      "save": "Salvar redação",
+      "saving": "Salvando…",
+      "saved": "Redação salva. Vale a partir da próxima mensagem.",
+      "restore": "Restaurar a padrão",
+      "restored": "Redação padrão restaurada",
+      "failed": "Não foi possível salvar",
+      "rejected": "A API rejeitou a mudança: {reason}"
+    }
   },
   "guardrails": {
     "title": "Guardrails",

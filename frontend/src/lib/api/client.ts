@@ -9,6 +9,8 @@ import type {
   ConversationUpdates,
   CustomerRecord,
   Dispute,
+  IntakeQuestion,
+  IntakeQuestions,
   Integrations,
   Message,
   Operations,
@@ -41,6 +43,8 @@ export interface ChatquiryApi {
 
   getOperations(): Promise<Operations>;
   getConfig(): Promise<Config>;
+  saveIntakeQuestions(questions: Record<string, IntakeQuestion>): Promise<IntakeQuestions>;
+  restoreIntakeQuestions(): Promise<IntakeQuestions>;
   listAudit(query: AuditQuery): Promise<Page<AuditEntry>>;
   auditActors(): Promise<string[]>;
   listStaff(): Promise<StaffProfile[]>;

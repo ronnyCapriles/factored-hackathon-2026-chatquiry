@@ -388,7 +388,8 @@
       "human_onlyHint": "Ninguna IA la tiene; solo el copiloto del agente."
     },
     "action": { "block": "Bloquear", "human": "A persona", "abstain": "Abstenerse", "route": "Enrutar a IA" },
-    "category": "categoría"
+    "category": "categoría",
+    "counter": "contador"
   },
   "departments": {
     "title": "Mapa y departamentos",
@@ -491,7 +492,7 @@
     "ordered": "Reglas en orden de prioridad",
     "if": "SI",
     "and": "Y",
-    "fallback": "Si ninguna regla coincide, el asistente pide una aclaración al cliente en lugar de adivinar.",
+    "fallback": "Si ninguna regla coincide, la conversación sigue en su departamento actual y el asistente responde con el contexto que ya tiene.",
     "signals": "Señales del filtro de ingreso",
     "thresholdsNote": "Umbrales elegidos en validación para priorizar no perder traspasos necesarios.",
     "examples": "Así se decide · ejemplos del chat de prueba",
@@ -507,7 +508,53 @@
     "saveAction": "Guardar regla",
     "deleteTitle": "¿Eliminar regla?",
     "deleteAction": "Eliminar regla",
-    "deleteConsequence": "Los mensajes que coincidían pasarán a la siguiente regla en orden."
+    "deleteConsequence": "Los mensajes que coincidían pasarán a la siguiente regla en orden.",
+    "counters": {
+      "title": "Contadores de la conversación",
+      "lead": "Suman a lo largo de la conversación y nunca bajan. Las reglas los comparan con un número entero: con ≥ 2, un solo mensaje dudoso no basta, pero una señal fuerte o dos seguidas sí.",
+      "security_strikes": "+1 por intento de manipulación o ataque bloqueado; +2 si dice no ser el titular.",
+      "frustration_hits": "+1 cuando frustration ≥ {frustration}; +2 cuando ≥ 0.90.",
+      "human_requests": "+1 cada vez que needs_human ≥ {needs_human}.",
+      "guardrail": "blocked o allowed. Lo decide Bedrock Guardrails antes del clasificador."
+    },
+    "jev": {
+      "section": "Clasificador de ingreso",
+      "title": "Preguntas al clasificador de ingreso",
+      "lead": "Cada mensaje del cliente, ya enmascarado por el guardrail, viaja con la última línea del asistente y estas preguntas. El clasificador responde probabilidades, no texto; las reglas leen las señales que salen de ellas.",
+      "active": "Activo",
+      "fallback": "Respaldo: {name}",
+      "summary": "{n} preguntas por mensaje.",
+      "defaultWording": "Redacción predeterminada.",
+      "customWording": "Redacción v{v} · {who} · {at}.",
+      "seeRequest": "Ver la solicitud",
+      "edit": "Editar preguntas",
+      "tabs": {
+        "questions": "Preguntas",
+        "request": "Solicitud JSON"
+      },
+      "shapeNote": "Puedes cambiar la redacción. Las preguntas, sus tipos y sus opciones son fijos porque el enrutamiento los lee.",
+      "instructionsFor": "Instrucciones de {key}",
+      "feeds": {
+        "language": "→ language. Si no es es, pt ni en, la conversación conserva su idioma.",
+        "intent": "→ intent y su confianza.",
+        "manipulation": "→ injection_risk. Con {injection_risk} o más suma 1 a security_strikes.",
+        "not_holder": "Con 0.50 o más suma 2 a security_strikes: basta para pasar a seguridad.",
+        "wants_person": "→ needs_human. Con {needs_human} o más suma 1 a human_requests.",
+        "frustrated": "→ frustration, hasta 0.89. Con {frustration} o más suma 1 a frustration_hits.",
+        "furious": "Con 0.50 o más, frustration pasa a 0.95 y suma 2 a frustration_hits.",
+        "closing": "Con 0.50 o más e intent = other, la conversación queda resuelta."
+      },
+      "requestNote": "Ejemplo con un mensaje de prueba. Del banco solo salen el mensaje enmascarado y la última línea del asistente.",
+      "copy": "Copiar",
+      "copied": "Solicitud copiada",
+      "save": "Guardar redacción",
+      "saving": "Guardando…",
+      "saved": "Redacción guardada. Aplica desde el próximo mensaje.",
+      "restore": "Restaurar la predeterminada",
+      "restored": "Redacción predeterminada restaurada",
+      "failed": "No se pudo guardar",
+      "rejected": "La API rechazó el cambio: {reason}"
+    }
   },
   "guardrails": {
     "title": "Guardrails",
