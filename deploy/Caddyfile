@@ -1,0 +1,5 @@
+# Certificates come from Let's Encrypt as soon as API_DOMAIN resolves to this host.
+{$API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy api:8000
+}
