@@ -8,17 +8,17 @@ One repository, independent deploy units. Each top-level folder builds and ships
 
 | Path | What | Deploys to |
 |---|---|---|
-| `frontend/` | Next.js 16 app (landing, staff workspace, test chat) | AWS Amplify |
-| `backend/` | FastAPI service (orchestrator, API, auth) | EC2 via Docker image in ECR |
+| `frontend/` | Next.js 16 app (landing, staff workspace, test chat) | AWS Amplify (`amplify.yml`) |
+| `backend/` | FastAPI service (orchestrator, API, auth) | EC2, arm64 image in ECR |
+| `deploy/` | Production compose file, Caddy and the deploy script | Runs on the EC2 host |
 | `pipeline/` | Data pipeline (bronze, silver, gold) | Runs as a job; loads Postgres |
-| `ml/` | Intake classifier training and evaluation | Offline |
 | `eval/` | End-to-end evaluation harness | Offline and CI |
-| `infra/` | Terraform | Applied manually from CI |
-| `docs/` | Scope, architecture, results | Not deployed |
+| `infra/` | Terraform | Applied by hand |
+| `docs/` | Evaluation report and data quality findings | Not deployed |
 
 CI lives in `.github/workflows/`, one workflow per unit, filtered by path so a change in `frontend/` never rebuilds the backend.
 
-Each unit has its own tooling: `npm` in `frontend/`, `uv` in `backend/`, `pipeline/`, `ml/` and `eval/`. Read the unit's own `AGENTS.md` when it has one (for example `frontend/AGENTS.md`).
+Each unit has its own tooling: `npm` in `frontend/`, `uv` in `backend/`, `pipeline/` and `eval/`. Read the unit's own `AGENTS.md` when it has one (for example `frontend/AGENTS.md`). `README.md` covers running and deploying; `infra/README.md` covers the stacks.
 
 ## Running locally
 
@@ -49,7 +49,7 @@ type(scope): short description in lowercase
 ```
 
 - `type`: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `perf`, `ci`
-- `scope`: the unit touched: `frontend`, `backend`, `data`, `ml`, `eval`, `infra`, `docs`
+- `scope`: the unit touched: `frontend`, `backend`, `data`, `eval`, `infra`, `docs` (`deploy/` and `amplify.yml` count as `infra`)
 - Imperative mood, no trailing period, 72 characters or fewer.
 - No body, no trailers, no co-author lines, no tool or assistant references.
 - Do not use the long dash character anywhere in commit messages.
@@ -80,4 +80,4 @@ chore(infra): pin terraform aws provider
 ## Data and secrets
 
 - Organizer PDFs, `.env*` files and `data/` are ignored and must never be committed. The data dictionary contains credentials.
-- Secrets reach services through environment variables or AWS SSM, never through the repository.
+- Secrets reach services through environment variables or AWS Secrets Manager, never through the repository.
