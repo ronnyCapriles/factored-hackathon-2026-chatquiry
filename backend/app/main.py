@@ -14,7 +14,7 @@ app = FastAPI(title="Chatquiry API", version="0.1.0", docs_url=None if settings.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type", "X-Chatquiry-Locale", "X-Api-Key", "X-Customer-Assertion"],
 )
 
