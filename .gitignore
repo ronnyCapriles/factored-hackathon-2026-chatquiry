@@ -1,10 +1,9 @@
-# secrets & organizer material (contains credentials — never commit)
+# Secrets and organizer material: they hold credentials and are never committed.
 .env
 .env.*
 !.env.example
+!.env.datathon.example
 *.pdf
-*.excalidraw
-Sistema@2x.png
 # evaluation keys and raw runs
 eval/.secrets/
 eval/results/runs/
