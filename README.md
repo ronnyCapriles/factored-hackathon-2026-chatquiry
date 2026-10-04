@@ -2,7 +2,9 @@
 
 AI-first customer service for banks. The AI handles the repeatable requests in a human tone; people decide the sensitive ones, and receive them with the facts already verified.
 
-Built for the Factored AI & Data Hackathon 2026 on the organizers' synthetic LATAM Bank dataset. **Live demo:** see the link in the repository description.
+Built for the Factored AI & Data Hackathon 2026 on the organizers' synthetic LATAM Bank dataset.
+
+**Live demo: [www.chatquiry.com](https://www.chatquiry.com).** The staff password for the demo accounts is in the submission.
 
 - [Evaluation report](docs/results.md): 30 scenarios, 3 runs each, played through the bank-facing API.
 - [Data quality findings](docs/data-quality.md): what the pipeline found in the dataset.
@@ -139,7 +141,7 @@ Each unit has its own workflow in `.github/workflows/`, filtered by path: backen
 
 ## Deployment
 
-The API, Postgres and Caddy run with Docker Compose on one EC2 `t4g.small`; the frontend runs on AWS Amplify. Terraform creates the host, its role, the image registry, the secrets and a budget alarm. See [infra/README.md](infra/README.md).
+The API (`api.chatquiry.com`), Postgres and Caddy run with Docker Compose on one EC2 `t4g.small`; the frontend runs on AWS Amplify (`www.chatquiry.com`). Terraform creates the host, its role, the image registry, the secrets, a budget alarm and the role GitHub Actions deploys with. A push to `main` that passes the backend checks builds the arm64 image and restarts the API through Session Manager; Amplify builds the frontend on every push. The `deploy` workflow can also be run by hand for either or both. See [infra/README.md](infra/README.md).
 
 ## Limits
 
