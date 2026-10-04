@@ -279,6 +279,18 @@ async def test_searches_never_look_back_less_than_a_week(client, agent, world):
     assert steps(turn)["tool.find_transactions"] == "ok"
 
 
+async def test_malformed_tool_arguments_go_back_to_the_model(client, agent, world):
+    seen = []
+
+    def check(messages):
+        seen.append(messages[-1]["content"][0])
+        return say("¿Me confirmas el monto, por favor?")
+
+    use(ScriptedLLM(call("find_transactions", days_back="treinta", amount_approx="1.200,50"), check))
+    turn = await send(client, agent, "Hice una transferencia ayer y no llega")
+    assert seen[0]["is_error"] and steps(turn)["tool.find_transactions"] == "blocked"
+
+
 async def test_a_blocked_secret_is_never_stored(client, agent, world, monkeypatch):
     from app.orchestrator import engine
     from app.orchestrator.intake import REDACTED, GuardrailResult

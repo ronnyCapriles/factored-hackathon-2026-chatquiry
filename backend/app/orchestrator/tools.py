@@ -57,7 +57,8 @@ class ToolBox:
             raise ToolError(f"Tool {name} is not available.")
         try:
             result = await getattr(self, f"_{name}")(**args)
-        except TypeError as e:
+        # The model's arguments are untrusted: "treinta" days or a "1.200,50" amount go back to it as a tool error.
+        except (TypeError, ValueError, ArithmeticError) as e:
             self.recorder.add(f"tool.{name}", f"invalid input: {e}", "blocked", started)
             raise ToolError("Invalid input for this tool.") from None
         except ToolError as e:
