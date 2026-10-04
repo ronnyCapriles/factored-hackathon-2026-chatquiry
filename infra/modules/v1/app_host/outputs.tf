@@ -3,3 +3,5 @@ output "public_ip" { value = aws_eip.this.public_ip }
 output "security_group_id" { value = aws_security_group.this.id }
 output "role_name" { value = aws_iam_role.this.name }
 output "repository_url" { value = aws_ecr_repository.api.repository_url }
+output "instance_arn" { value = aws_instance.this.arn }
+output "repository_arn" { value = aws_ecr_repository.api.arn }

@@ -25,3 +25,8 @@ variable "budget_email" {
   type        = string
   description = "Receives the budget alerts. Pass it with TF_VAR_budget_email so it stays out of the repository."
 }
+
+variable "github_repository" {
+  type        = string
+  description = "owner/name of the repository whose main branch may deploy."
+}
