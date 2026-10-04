@@ -42,6 +42,8 @@ async def seed() -> None:
             if user:
                 for k, v in fields.items():
                     setattr(user, k, v)
+                # Staff cannot change passwords in the app yet, so rotating the seed password rotates every seeded account.
+                user.password_hash = password_hash
             else:
                 s.add(StaffUser(password_hash=password_hash, **fields))
 

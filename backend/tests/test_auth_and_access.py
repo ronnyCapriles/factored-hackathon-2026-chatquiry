@@ -6,6 +6,7 @@ from sqlalchemy import delete
 from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.models import Conversation, Customer, Organization, Workspace
+from app.seed import seed
 
 ADMIN_ONLY = ["/v1/operations", "/v1/audit", "/v1/audit/actors", "/v1/integrations", "/v1/role-permissions"]
 
@@ -116,3 +117,14 @@ async def test_refresh_slides_the_session_but_keeps_the_sign_in_time(client):
         algorithm="HS256",
     )
     assert (await client.post("/v1/auth/refresh", headers={"Authorization": f"Bearer {stale}"})).status_code == 401
+
+
+async def test_reseeding_rotates_the_seeded_staff_password(client, monkeypatch):
+    monkeypatch.setenv("CQ_SEED_PASSWORD", "rotated-password-0123")
+    try:
+        await seed()
+        assert (await client.post("/v1/auth/login", json={"email": "marco.vidal@chatquiry.demo", "password": "rotated-password-0123"})).status_code == 200
+        assert (await client.post("/v1/auth/login", json={"email": "marco.vidal@chatquiry.demo", "password": "demo-demo"})).status_code == 401
+    finally:
+        monkeypatch.delenv("CQ_SEED_PASSWORD")
+        await seed()
