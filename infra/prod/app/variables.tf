@@ -26,7 +26,7 @@ variable "budget_email" {
   description = "Receives the budget alerts. Pass it with TF_VAR_budget_email so it stays out of the repository."
 }
 
-variable "github_repository" {
+variable "github_subject" {
   type        = string
-  description = "owner/name of the repository whose main branch may deploy."
+  description = "OIDC subject prefix of the repository that may deploy, from GET /repos/{owner}/{repo}/actions/oidc/customization/sub. It carries the owner and repository ids, so a renamed or recreated repository does not match."
 }
