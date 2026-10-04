@@ -111,7 +111,7 @@ export function ConversationPanel({
     <section className="flex min-h-0 flex-col" aria-label={fmt(c.withCustomer, { name: conversation.customerName })}>
       <div className="flex h-16 shrink-0 items-center gap-3.5 border-b-[1.5px] border-linea bg-superficie px-[22px]">
         <div className="flex min-w-0 grow flex-col">
-          <span className="text-[17px] font-bold">{conversation.customerName}</span>
+          <span className="truncate text-[17px] font-bold">{conversation.customerName}</span>
           <span className="truncate text-[13px] text-muted">{meta.join(" · ")}</span>
         </div>
         <Link href={`/app/customers/${conversation.customerId}`} className="text-[14px] font-semibold underline underline-offset-4">
