@@ -36,7 +36,7 @@ export default async function GuardrailsPage() {
         }
       />
 
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Card emphasis className="flex flex-col gap-2 p-6">
           <Label>{m.promptAttack}</Label>
           <StrengthMeter value={g.promptAttack} label={m.promptAttack} text={s[g.promptAttack]} />
@@ -54,7 +54,7 @@ export default async function GuardrailsPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 items-start gap-5">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
         <Card className="flex flex-col gap-2 px-6 py-5">
           <SectionTitle>{m.content}</SectionTitle>
           <Table>
@@ -99,7 +99,7 @@ export default async function GuardrailsPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-start gap-5">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <Card className="flex flex-col gap-3 p-6">
           <SectionTitle>{m.denied}</SectionTitle>
           {g.deniedTopics.map((d) => (

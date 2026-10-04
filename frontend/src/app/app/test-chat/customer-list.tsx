@@ -11,14 +11,14 @@ export function CustomerList({ customers, selectedId }: { customers: TestCustome
   const sessions = useSessions();
 
   return (
-    <ul className="flex min-h-0 flex-col gap-2 overflow-y-auto pb-1">
+    <ul className="flex min-h-0 gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-x-visible lg:overflow-y-auto">
       {customers.map((c) => {
         const active = c.customerId === selectedId;
         const session = sessions[c.customerId];
         const state = session?.turns.at(-1)?.state;
         const sent = session?.messages.filter((m) => m.author === "customer").length ?? 0;
         return (
-          <li key={c.customerId}>
+          <li key={c.customerId} className="w-[240px] shrink-0 lg:w-auto">
             <Link
               href={`?customer=${c.customerId}`}
               replace

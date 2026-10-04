@@ -50,7 +50,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/app/audit"
   ]);
 
   return (
-    <div className="flex flex-col gap-5 px-8 py-7">
+    <div className="flex flex-col gap-5 px-4 py-5 lg:px-8 lg:py-7">
       <PageTitle
         aside={
           <div className="flex items-center gap-3">

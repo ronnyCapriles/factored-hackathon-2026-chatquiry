@@ -33,7 +33,7 @@ export default async function ProfilesPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
         {cfg.profiles.map((x) => {
           const live = active.has(x.name);
           return (

@@ -52,10 +52,10 @@ export default async function OperationsPage({ searchParams }: PageProps<"/app/o
   ];
 
   return (
-    <div className="flex flex-col gap-6 px-8 py-7">
+    <div className="flex flex-col gap-6 px-4 py-5 lg:px-8 lg:py-7">
       <PageTitle>{m.title}</PageTitle>
 
-      <section className="grid grid-cols-3 gap-4" aria-label={m.live}>
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3" aria-label={m.live}>
         {live.map((l) => (
           <Link key={l.label} href={l.href} className="flex items-center gap-4 rounded-tarjeta border-[1.5px] border-linea bg-superficie px-5 py-4 hover:border-tinta">
             <StateBubble state={l.state} size={44} />
@@ -73,7 +73,7 @@ export default async function OperationsPage({ searchParams }: PageProps<"/app/o
           <h2 id="eval" className="etiqueta">{m.evalTitle}</h2>
           {ops.sample && <ReadOnlyBadge>{m.noData}</ReadOnlyBadge>}
         </div>
-        <div className="grid grid-cols-6 gap-3.5">
+        <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-6">
           {ops.kpis.map((k, i) => (
             <Card key={k.key} emphasis={i === 0} className="flex flex-col gap-1.5 px-[18px] py-4">
               <Label>{k.label}</Label>
@@ -84,7 +84,7 @@ export default async function OperationsPage({ searchParams }: PageProps<"/app/o
         </div>
       </section>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_440px] items-start gap-5">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_440px]">
         <Card className="flex flex-col gap-2 px-6 py-5">
           <Label>{m.segmentsTitle}</Label>
           <Table>

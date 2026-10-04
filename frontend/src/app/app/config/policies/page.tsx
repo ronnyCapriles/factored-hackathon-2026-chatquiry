@@ -22,7 +22,7 @@ export default async function PoliciesPage() {
       <p className="rounded-fila border-[1.5px] border-dashed border-punto bg-superficie px-5 py-3 text-[14px] text-tinta-3">{m.synthetic}</p>
 
       {policies.map((p) => (
-        <Card key={p.id} emphasis className="grid grid-cols-[minmax(0,1fr)_320px] gap-8 p-7">
+        <Card key={p.id} emphasis className="grid grid-cols-1 gap-8 p-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:p-7">
           <div className="flex flex-col gap-5">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-[24px] font-bold">{p.name}</h2>

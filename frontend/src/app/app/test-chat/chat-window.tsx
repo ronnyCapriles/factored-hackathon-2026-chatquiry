@@ -67,12 +67,16 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
   const session: ChatSession = useSession(customerId) ?? base();
   const { messages, turns, conversationId, agent, typing, notice } = session;
   const [draft, setDraft] = useState("");
-  const endRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const t = COPY[session.lang];
   const latest = turns.at(-1);
   const latestLang = latest?.signals.find((s) => s.name === "language")?.value;
 
-  useEffect(() => endRef.current?.scrollIntoView({ block: "end" }), [messages, typing]);
+  // Scrolls the message list only; scrollIntoView would also move the page on a phone, where the chat sits below the customers.
+  useEffect(() => {
+    const list = listRef.current;
+    if (list) list.scrollTop = list.scrollHeight;
+  }, [messages, typing]);
 
   useEffect(() => {
     if (!conversationId || !agent.human) return;
@@ -157,7 +161,7 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
 
   return (
     <>
-      <section className="flex min-h-0 flex-col" aria-label={m.title}>
+      <section className="flex h-[78dvh] min-h-0 flex-col lg:h-auto" aria-label={m.title}>
         <header className="flex h-16 shrink-0 items-center gap-3 border-b-[1.5px] border-linea bg-superficie px-[22px]">
           <span className={`flex size-10 shrink-0 items-center justify-center rounded-full text-[16px] font-bold ${agent.human ? "bg-tinta text-fondo" : "bg-marca"}`} aria-hidden="true">
             {agent.initial}
@@ -172,7 +176,7 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
           </button>
         </header>
 
-        <div className="flex min-h-0 grow flex-col gap-2 overflow-y-auto px-[26px] py-[18px] text-[15px] leading-[1.42]" aria-live="polite">
+        <div ref={listRef} className="flex min-h-0 grow flex-col gap-2 overflow-y-auto px-[26px] py-[18px] text-[15px] leading-[1.42]" aria-live="polite">
           {aiDisclosure && <p className="mx-auto mb-2 max-w-[420px] text-center text-[12px] text-muted">{fmt(t.notice, { ai: aiName })}</p>}
           <span className="grow" />
           {messages.map((msg, i) => {
@@ -221,7 +225,6 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
               {t[notice]}
             </p>
           )}
-          <div ref={endRef} />
         </div>
 
         <form onSubmit={send} className="flex shrink-0 items-center gap-2.5 border-t-[1.5px] border-linea bg-superficie px-[22px] pb-[18px] pt-3.5">
@@ -235,7 +238,7 @@ export function TestChat({ customerId, language, greeting, aiName, aiDisclosure 
         </form>
       </section>
 
-      <aside className="flex min-h-0 flex-col border-l-[1.5px] border-linea bg-superficie" aria-label={m.inspector}>
+      <aside className="flex h-[70dvh] min-h-0 flex-col border-t-[1.5px] border-linea bg-superficie lg:h-auto lg:border-l-[1.5px] lg:border-t-0" aria-label={m.inspector}>
         <div className="flex shrink-0 flex-col gap-3 border-b-[1.5px] border-linea px-5 py-4">
           <span className="etiqueta">{m.inspector}</span>
           {latest ? (

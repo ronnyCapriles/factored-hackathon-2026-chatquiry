@@ -120,7 +120,7 @@ export function KeyValue({ k, v, mono }: { k: ReactNode; v: ReactNode; mono?: bo
 
 export function PageTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex flex-wrap items-center justify-between gap-4">
       <h1 className="text-[28px] font-bold tracking-tight">{children}</h1>
       {aside}
     </div>

@@ -23,12 +23,14 @@ export default async function ConversationsPage({ searchParams }: PageProps<"/ap
   const [list, counts, staff] = await Promise.all([api().listConversations(filter), api().conversationCounts(), api().listStaff()]);
   const nameOf = (id?: string) => staff.find((s) => s.id === id)?.name;
   const shown = q ? list.filter((c) => `${c.customerName} ${c.lastMessage}`.toLowerCase().includes(q)) : list;
-  const selectedId = typeof sp.c === "string" ? sp.c : shown[0]?.id;
+  // On a phone the list and the open conversation take turns; an explicit pick shows the conversation.
+  const picked = typeof sp.c === "string" ? sp.c : undefined;
+  const selectedId = picked ?? shown[0]?.id;
   const conversation = selectedId ? await api().getConversation(selectedId) : null;
 
   return (
-    <div className="grid h-full min-h-0 grow grid-cols-[330px_minmax(0,1fr)_380px]">
-      <aside className="flex min-h-0 flex-col gap-3 border-r-[1.5px] border-linea bg-superficie px-4 py-[18px]" aria-label={t.conversations.list}>
+    <div className="grid h-full min-h-0 grow grid-cols-1 lg:grid-cols-[330px_minmax(0,1fr)_380px]">
+      <aside className={`${picked ? "hidden lg:flex" : "flex"} min-h-0 flex-col gap-3 border-r-[1.5px] border-linea bg-superficie px-4 py-[18px]`} aria-label={t.conversations.list}>
         <form role="search">
           <input type="hidden" name="f" value={filter} />
           <label className="sr-only" htmlFor="q">{t.common.search}</label>
@@ -79,18 +81,25 @@ export default async function ConversationsPage({ searchParams }: PageProps<"/ap
       </aside>
 
       {conversation ? (
-        <>
-          <ConversationPanel
-            key={conversation.id}
-            conversation={conversation}
-            agentName={user.name.split(" ")[0]}
-            readOnly={readOnly}
-            assignee={readOnly ? nameOf(conversation.assignedTo) : undefined}
-          />
-          <CopilotPanel conversation={conversation} readOnly={readOnly} />
-        </>
+        <div className={`${picked ? "flex" : "hidden"} min-h-0 flex-col overflow-y-auto lg:contents`}>
+          <Link href={`?f=${filter}`} className="flex h-11 shrink-0 items-center gap-2 border-b-[1.5px] border-linea bg-superficie px-4 text-[14px] font-semibold lg:hidden">
+            ← {t.nav.conversations}
+          </Link>
+          <div className="flex h-[calc(100dvh-100px)] min-h-[420px] shrink-0 flex-col lg:contents">
+            <ConversationPanel
+              key={conversation.id}
+              conversation={conversation}
+              agentName={user.name.split(" ")[0]}
+              readOnly={readOnly}
+              assignee={readOnly ? nameOf(conversation.assignedTo) : undefined}
+            />
+          </div>
+          <div className="shrink-0 lg:contents">
+            <CopilotPanel conversation={conversation} readOnly={readOnly} />
+          </div>
+        </div>
       ) : (
-        <div className="col-span-2 flex items-center justify-center text-muted">{t.conversations.pick}</div>
+        <div className="col-span-2 hidden items-center justify-center text-muted lg:flex">{t.conversations.pick}</div>
       )}
     </div>
   );

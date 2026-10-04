@@ -18,7 +18,7 @@ export default async function TracePage({ params }: PageProps<"/app/traces/[id]"
   const x = t.traces;
 
   return (
-    <div className="flex flex-col gap-5 px-8 py-7">
+    <div className="flex flex-col gap-5 px-4 py-5 lg:px-8 lg:py-7">
       <div className="flex flex-wrap items-center gap-3">
         <BackLink fallback="/app/conversations" />
         <span className="grow" />
@@ -33,7 +33,7 @@ export default async function TracePage({ params }: PageProps<"/app/traces/[id]"
           </>
         )}
       </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_340px] items-start gap-5">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <Card className="flex flex-col gap-4 px-7 py-6">
           <div className="flex flex-col gap-1">
             <h1 className="text-[26px] font-bold">

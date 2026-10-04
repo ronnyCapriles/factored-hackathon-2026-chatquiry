@@ -19,7 +19,7 @@ export default async function IntegrationsPage() {
     <>
       <ConfigHeader title={m.title} lead={m.lead} />
 
-      <div className="grid grid-cols-3 items-start gap-5">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
         <Card emphasis className="flex flex-col gap-3 p-6">
           <div className="flex items-center justify-between gap-2">
             <SectionTitle>{m.apiKeys}</SectionTitle>

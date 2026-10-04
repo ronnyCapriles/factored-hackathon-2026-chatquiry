@@ -60,7 +60,7 @@ export default async function ProfilePage({ params }: PageProps<"/app/config/pro
         <DeleteButton title={m.deleteTitle} action={m.deleteAction} name={p.name} consequence={m.deleteConsequence} confirmWord={p.name} />
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_400px] items-start gap-5">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex flex-col gap-5">
           <Card emphasis className="flex flex-col gap-5 p-7">
             <div className="flex items-center gap-4">

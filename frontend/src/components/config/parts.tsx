@@ -7,12 +7,12 @@ import type { ConversationState, FilterStrength, RoutingAction, ToolPermission }
 export async function ConfigHeader({ title, lead, aside }: { title: string; lead: string; aside?: ReactNode }) {
   const t = await getMessages();
   return (
-    <header className="flex items-start justify-between gap-6">
+    <header className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:gap-6">
       <div className="flex max-w-[760px] flex-col gap-2">
         <h1 className="text-[30px] font-bold tracking-tight">{title}</h1>
         <p className="text-[16px] leading-normal text-tinta-3">{lead}</p>
       </div>
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
         {aside}
         <ReadOnlyBadge>{t.common.readOnly}</ReadOnlyBadge>
       </div>

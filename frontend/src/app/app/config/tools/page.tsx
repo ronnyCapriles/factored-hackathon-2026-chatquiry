@@ -36,7 +36,7 @@ export default async function ToolsPage({ searchParams }: PageProps<"/app/config
     <>
       <ConfigHeader title={m.title} lead={m.lead} aside={<EntityFormButton mode="create" title={m.new} action={m.createAction} fields={fields} description={m.newNote} />} />
 
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {ORDER.map((p) => {
           const alert = p === "human_only";
           return (
@@ -76,7 +76,7 @@ export default async function ToolsPage({ searchParams }: PageProps<"/app/config
                 <path d="M6 9l6 6 6-6" />
               </svg>
             </summary>
-            <div className="grid grid-cols-[minmax(0,1fr)_380px] gap-6 border-t-[1.5px] border-linea px-6 py-5">
+            <div className="grid grid-cols-1 gap-6 border-t-[1.5px] lg:grid-cols-[minmax(0,1fr)_380px] border-linea px-6 py-5">
               <div className="flex flex-col gap-3">
                 <p className="text-[15px]">{x.description}</p>
                 <div className="flex flex-col gap-1 rounded-fila bg-marca-suave px-4 py-3">

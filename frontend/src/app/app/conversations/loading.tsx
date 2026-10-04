@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <div className="grid h-full grow grid-cols-[330px_minmax(0,1fr)_380px]" role="status" aria-busy="true">
+    <div className="grid h-full grow grid-cols-1 lg:grid-cols-[330px_minmax(0,1fr)_380px]" role="status" aria-busy="true">
       <div className="flex flex-col gap-3 border-r-[1.5px] border-linea bg-superficie p-4">
         <div className="skeleton h-11 rounded-full" />
         <div className="skeleton h-20" />

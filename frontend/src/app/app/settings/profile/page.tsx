@@ -16,13 +16,13 @@ export default async function ProfilePage() {
   const m = t.profile;
 
   return (
-    <div className="flex flex-col gap-6 px-8 py-7">
+    <div className="flex flex-col gap-6 px-4 py-5 lg:px-8 lg:py-7">
       <div className="flex flex-col gap-2">
         <h1 className="text-[30px] font-bold tracking-tight">{m.title}</h1>
         <p className="max-w-[760px] text-[16px] text-tinta-3">{m.lead}</p>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_360px] items-start gap-6">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <ProfileForm profile={profile} />
 
         <aside className="sticky top-7 flex flex-col gap-5">

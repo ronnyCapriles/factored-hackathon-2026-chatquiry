@@ -96,7 +96,7 @@ export function ProfileForm({ profile }: { profile: StaffProfile }) {
       <input type="hidden" name="theme" value={theme} />
       {!handlesChats && <input type="hidden" name="greeting" value={greeting} />}
 
-      <Card className="grid grid-cols-[minmax(0,1fr)_300px] gap-8 p-7">
+      <Card className="grid grid-cols-1 gap-8 p-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:p-7">
         <div className="flex flex-col gap-5">
           <Label>{m.photoAndName}</Label>
           <div className="flex items-center gap-5">
@@ -176,13 +176,13 @@ export function ProfileForm({ profile }: { profile: StaffProfile }) {
           <Label>{m.interface}</Label>
           <span className="text-[13px] text-muted">{m.interfaceHint}</span>
         </div>
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <Segmented label={t.prefs.language} value={locale} onChange={setLocale} options={LOCALES.map((l) => ({ value: l, label: t.languages[l] }))} />
           <Segmented label={t.prefs.theme} value={theme} onChange={setTheme} options={THEMES.map((x) => ({ value: x, label: t.prefs[x] }))} />
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card className="flex flex-col gap-4 p-7">
           <Label>{m.contact}</Label>
           <label className="flex flex-col gap-1.5 text-[14px] font-semibold">

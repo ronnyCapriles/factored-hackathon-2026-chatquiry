@@ -67,6 +67,7 @@
   "nav": {
     "main": "Principal",
     "home": "Chatquiry, inicio",
+    "openMenu": "Abrir menú",
     "attention": "Atención",
     "supervision": "Supervisión",
     "configuration": "Configuración",

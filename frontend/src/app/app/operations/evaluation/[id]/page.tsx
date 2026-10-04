@@ -26,7 +26,7 @@ export default async function EvaluationRunPage({ params }: PageProps<"/app/oper
   const state = run.state && run.state in t.states ? t.states[run.state as ConversationState] : run.state;
 
   return (
-    <div className="flex flex-col gap-5 px-8 py-7">
+    <div className="flex flex-col gap-5 px-4 py-5 lg:px-8 lg:py-7">
       <div className="flex flex-wrap items-center gap-3">
         <BackLink fallback="/app/operations" label={m.back} />
         <span className="grow" />
@@ -58,7 +58,7 @@ export default async function EvaluationRunPage({ params }: PageProps<"/app/oper
         </div>
       </header>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_360px] items-start gap-5">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="flex flex-col gap-6 px-7 py-6">
           {run.turns.length === 0 && <p className="text-[15px] text-tinta-3">{m.notStored}</p>}
           {run.turns.map((turn, i) => (

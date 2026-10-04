@@ -20,7 +20,7 @@ export default async function DisputesPage({ searchParams }: PageProps<"/app/dis
   const conversation = selected && conversations.find((c) => c.id === selected.traceId);
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_460px] items-start gap-5 px-8 py-7">
+    <div className="grid grid-cols-1 items-start gap-5 px-4 py-5 lg:grid-cols-[minmax(0,1fr)_460px] lg:px-8 lg:py-7">
       <Card className="flex flex-col gap-4 px-6 py-5">
         <PageTitle aside={<ReadOnlyBadge />}>{d.title}</PageTitle>
         <Table>

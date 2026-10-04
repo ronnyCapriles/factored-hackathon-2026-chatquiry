@@ -120,7 +120,7 @@ export default async function DepartmentsPage() {
 
       <section className="flex flex-col gap-4" aria-labelledby="deps">
         <SectionTitle id="deps">{d.list}</SectionTitle>
-        <div className="grid grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           {cfg.departments.map((x) => (
             <Card key={x.id} className="flex scroll-mt-6 flex-col gap-3.5 p-6" as="section">
               <div id={x.id} className="flex items-start justify-between gap-3">

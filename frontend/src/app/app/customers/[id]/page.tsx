@@ -18,12 +18,12 @@ export default async function CustomerPage({ params }: PageProps<"/app/customers
   const c = t.customers;
 
   return (
-    <div className="flex flex-col gap-5 px-8 py-7">
+    <div className="flex flex-col gap-5 px-4 py-5 lg:px-8 lg:py-7">
       <BackLink fallback="/app/customers" />
-      <div className="flex items-center gap-[18px]">
+      <div className="flex flex-wrap items-center gap-[18px]">
         <Avatar initials={r.initials} size={64} />
-        <div className="flex grow flex-col gap-1">
-          <h1 className="text-[30px] font-bold">{r.name}</h1>
+        <div className="flex min-w-[220px] grow basis-0 flex-col gap-1">
+          <h1 className="text-[24px] font-bold lg:text-[30px]">{r.name}</h1>
           <p className="flex flex-wrap gap-2 text-[14px] text-tinta-3">
             <span className="tabular">{r.id}</span>·<span>{r.segment}</span>·<span>{r.country}</span>·<span>{r.status}</span>·
             <span>{fmt(c.speaks, { lang: t.languages[r.language].toLowerCase() })}</span>
@@ -32,7 +32,7 @@ export default async function CustomerPage({ params }: PageProps<"/app/customers
         <ReadOnlyBadge>{t.common.readOnlyMasked}</ReadOnlyBadge>
       </div>
 
-      <div className="grid grid-cols-[300px_minmax(0,1fr)_360px] items-start gap-5">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)_360px]">
         <Card className="flex flex-col gap-2.5 px-6 py-5">
           <Label>{c.data}</Label>
           <KeyValue k={c.document} v={r.documentMasked} />

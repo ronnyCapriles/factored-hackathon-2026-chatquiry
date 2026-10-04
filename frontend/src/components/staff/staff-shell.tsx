@@ -9,6 +9,7 @@ import type { Role, StaffUser } from "@/lib/api/types";
 import type { Messages } from "@/i18n/config";
 import { getMessages } from "@/i18n/server";
 import { NavLink } from "./nav-link";
+import { StaffFrame } from "./staff-frame";
 
 type NavKey = keyof Messages["nav"];
 
@@ -59,11 +60,18 @@ const AVAILABILITY_DOT = { available: "bg-tinta", paused: "bg-marca", offline: "
 export async function StaffShell({ user, children }: { user: StaffUser; children: ReactNode }) {
   const [profile, t] = await Promise.all([api().getProfile(user.id), getMessages()]);
   const availability = profile?.availability ?? "available";
+  const home = user.role === "admin" ? "/app/operations" : "/app/conversations";
 
   return (
-    <div className="grid h-dvh min-h-[640px] grid-cols-[256px_minmax(0,1fr)]">
-      <aside className="flex min-h-0 flex-col border-r-[1.5px] border-linea bg-superficie">
-        <Link href={user.role === "admin" ? "/app/operations" : "/app/conversations"} className="flex h-[68px] shrink-0 items-center px-5" aria-label={t.nav.home}>
+    <StaffFrame
+      brand={
+        <Link href={home} aria-label={t.nav.home}>
+          <Wordmark size={26} />
+        </Link>
+      }
+      sidebar={
+      <aside className="flex min-h-0 w-full flex-col border-r-[1.5px] border-linea bg-superficie">
+        <Link href={home} className="flex h-[68px] shrink-0 items-center px-5" aria-label={t.nav.home}>
           <Wordmark size={30} />
         </Link>
         <nav className="flex min-h-0 grow flex-col gap-5 overflow-y-auto px-3 pb-4 pt-2" aria-label={t.nav.main}>
@@ -98,8 +106,10 @@ export async function StaffShell({ user, children }: { user: StaffUser; children
           </form>
         </div>
       </aside>
+      }
+    >
       {/* relative keeps absolutely positioned descendants (sr-only labels) inside the scroll area instead of stretching the page. */}
       <main className="relative flex min-h-0 flex-col overflow-y-auto">{children}</main>
-    </div>
+    </StaffFrame>
   );
 }

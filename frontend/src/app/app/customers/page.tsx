@@ -12,7 +12,7 @@ export default async function CustomersPage() {
   const c = t.customers;
 
   return (
-    <div className="flex flex-col gap-5 px-8 py-7">
+    <div className="flex flex-col gap-5 px-4 py-5 lg:px-8 lg:py-7">
       <PageTitle aside={<ReadOnlyBadge>{t.common.readOnlyMasked}</ReadOnlyBadge>}>{c.title}</PageTitle>
       <Card className="px-6 py-3">
         <Table>

@@ -23,13 +23,13 @@ export default async function RoutingPage() {
     <>
       <ConfigHeader title={m.title} lead={m.lead} aside={<EntityFormButton mode="create" title={m.new} action={m.createAction} fields={fields} initial={{ priority: cfg.routing.length + 1 }} />} />
 
-      <div className="grid grid-cols-[minmax(0,1fr)_380px] items-start gap-5">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
         <ol className="flex flex-col gap-3" aria-label={m.ordered}>
           {cfg.routing.map((r) => {
             const alert = r.action === "block";
             return (
               <li key={r.id} id={r.id} className="scroll-mt-6">
-                <Card className="grid grid-cols-[56px_minmax(0,1fr)_auto_auto] items-center gap-5 px-5 py-4">
+                <Card className="grid grid-cols-[48px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 px-5 py-4 lg:grid-cols-[56px_minmax(0,1fr)_auto_auto] lg:gap-5">
                   <span className="flex size-12 items-center justify-center rounded-full border-2 border-tinta font-display text-[22px]">{r.priority}</span>
                   <div className="flex min-w-0 flex-col gap-2">
                     <span className="flex items-baseline gap-2.5">
@@ -50,11 +50,11 @@ export default async function RoutingPage() {
                       <span className="font-semibold">{r.destination}</span>
                     </div>
                   </div>
-                  <span className={`inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full pl-1.5 pr-3.5 text-[14px] font-semibold ${alert ? "bg-atencion" : "border-[1.5px] border-linea"}`}>
+                  <span className={`col-span-2 inline-flex h-9 items-center gap-1.5 justify-self-start whitespace-nowrap rounded-full pl-1.5 pr-3.5 text-[14px] font-semibold lg:col-span-1 lg:justify-self-auto ${alert ? "bg-atencion" : "border-[1.5px] border-linea"}`}>
                     <StateBubble state={ACTION_STATE[r.action]} size={26} inverse={alert} />
                     {t.config.action[r.action]}
                   </span>
-                  <span className="flex gap-1.5">
+                  <span className="col-span-2 flex gap-1.5 lg:col-span-1">
                     <PendingIcon action={fmt(m.raiseAction, { id: r.id })} label={fmt(m.raise, { id: r.id })} path="M12 19V5M5 12l7-7 7 7" />
                     <PendingIcon action={fmt(m.lowerAction, { id: r.id })} label={fmt(m.lower, { id: r.id })} path="M12 5v14M5 12l7 7 7-7" />
                     <EntityFormButton
@@ -116,7 +116,7 @@ export default async function RoutingPage() {
 
       <section className="flex flex-col gap-4" aria-labelledby="ex">
         <SectionTitle id="ex">{m.examples}</SectionTitle>
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {cfg.routingExamples.map((e) => {
             const rule = cfg.routing.find((r) => r.id === e.matched);
             return (
