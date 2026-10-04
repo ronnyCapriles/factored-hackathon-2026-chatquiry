@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local editor worktrees, ignored by git.
+    ".kilo/**",
   ]),
 ]);
 
